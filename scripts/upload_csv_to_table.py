@@ -16,7 +16,7 @@ engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{databa
 def get_args_for_table_from_column_names(data):
 
     dtypedict = {}
-    for i,j in zip(data.columns.tolist(), data.dtypes):
+    for i,j in zip(data, data.dtypes):
         if "object" in str(j) or "str" in str(j):
             dtypedict.update({i: sqlalchemy.types.VARCHAR(length=255)})
                                  
@@ -46,7 +46,7 @@ def main(csv_path):
     if not inspect(engine).has_table(table_name):
         # создаем список аргументов для sqlalchemy, разбирая типы даных data
         args_for_table = get_args_for_table_from_column_names(data)
-        # Создаем таблицу. Если такая уже есть - добавляем к ней данные
+        # Создаем таблицу. 
         data.to_sql(table_name, engine, if_exists='append', index=False, method='multi', dtype=args_for_table)
         
 
