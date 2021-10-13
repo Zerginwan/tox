@@ -1,7 +1,6 @@
 from posixpath import basename
 from os.path import basename, splitext
-import yaml, pandas, sys
-import sqlalchemy
+import yaml, pandas, sys, openpyxl, sqlalchemy
 from sqlalchemy import *
 
 # подключаем конфиг
@@ -33,10 +32,16 @@ def get_args_for_table_from_column_names(data):
 
 def main(csv_path):
     try:
+        # Если csv:
         # sep - разделитель в csv 
         # header - строка с названиями хэдеров
         # пропускать пустые строки
-        data = pandas.read_csv(csv_path,sep=',',header=0,skip_blank_lines=True)
+        if splitext(csv_path)[1] == '.csv':
+            data = pandas.read_csv(csv_path,sep=',',header=0,skip_blank_lines=True)
+        # Если xlsx:    
+        # читаем только первую страницу
+        elif splitext(csv_path)[1] == '.xlsx':
+            data = pandas.read_excel(csv_path,header=0, engine='openpyxl')
         table_name = splitext(basename(csv_path))[0]
     except IOError as e:
         print('File not found')
