@@ -1,2 +1,4 @@
 node_modules
-dbConfig.js
+package-lock.json
+auth.config.js
+db.config.js
