@@ -21,3 +21,4 @@ apt install yq -y
 
 yq e -i '.service.flask.labels[1] = "traefik.http.routers.whoami.rule=\'Host(\`strenv(NAME)\`) && PathPrefix(\`/py/\`)\'"' "$SCRIPT_DIR/docker-compose.yml"
 yq e -i '.service.js.labels[1] = "traefik.http.routers.whoami.rule=Host(\`strenv(NAME)\`)"' "$SCRIPT_DIR/docker-compose.yml"
+echo "done"

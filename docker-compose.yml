@@ -5,6 +5,8 @@ services:
     build: "flask"
     container-name: "flask"
     restart: "always"
+    depends_on:
+      - memcached
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule='Host(`hostname.example.com`) && PathPrefix(`/py/`)'"
@@ -24,6 +26,15 @@ services:
       - "traefik.http.routers.whoami.tls.certresolver=myresolver"
     volumes:
       - './.config.yml:/app/.config.yml'
+  
+  memcached:
+    image: memcached:1-alpine
+    container-name: "memcached"
+    entrypoint:
+      - memcached
+      - -m 256
+    expose:
+      - "11211"
 
   traefik:
     image: "traefik:v2.5"
