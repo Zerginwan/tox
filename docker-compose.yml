@@ -1,0 +1,64 @@
+version: "3.8"
+services:
+
+  flask:
+    build: "flask"
+    container-name: "flask"
+    restart: "always"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule='Host(`hostname.example.com`) && PathPrefix(`/py/`)'"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+    volumes:
+      - './.config.yml:/app/.config.yml' 
+  
+  js:
+    build: "js"
+    container-name: "js"
+    restart: "always"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`hostname.example.com`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+    volumes:
+      - './.config.yml:/app/.config.yml'
+
+  traefik:
+    image: "traefik:v2.5"
+    container_name: "traefik"
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=postmaster@example.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "443:443"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+###
+# Расскомментировать для поднятия PSQL сервера
+# Настройки должны совпадать с теми, что в .config.yml
+# В качестве db.host в этом случае будет равен "psql" (имя службы docker-compose)
+###
+  # psql:
+    # image: postgres:13.4-alpine
+    # container-name: "psql"
+    # restart: always
+    # ports:
+      # - 5432:5432
+    # volumes:
+    # # место хранения файлов снаружи контейнера
+      # - '/srv/psql:/var/lib/postgresql/data/pgdata'
+    # environment:
+      # POSTGRES_PASSWORD: somePasswordHere
+      # POSTGRES_USER: user
+      # POSTGRES_DB: db
+      # # место хранения файлов внутри контейнера
+      # PGDATA: /var/lib/postgresql/data/pgdata
