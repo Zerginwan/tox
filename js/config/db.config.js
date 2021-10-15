@@ -8,5 +8,5 @@ module.exports = {
   USER: config.db.username,
   PASSWORD: config.db.password,
   DB: config.db.database,
-  dialect: "postgres",
+  dialect: config.db.dialect,
 };
