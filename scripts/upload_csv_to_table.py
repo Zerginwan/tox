@@ -1,4 +1,3 @@
-from posixpath import basename
 from os.path import basename, splitext
 import yaml, pandas, sys, openpyxl, sqlalchemy
 from sqlalchemy import *
@@ -23,7 +22,7 @@ def get_args_for_table_from_column_names(data):
             dtypedict.update({i: sqlalchemy.types.DateTime()})
 
         if "float" in str(j):
-            dtypedict.update({i: sqlalchemy.types.Float(precision=6, asdecimal=True)})
+            dtypedict.update({i: sqlalchemy.types.Float(precision=14, asdecimal=True)})
 
         if "int" in str(j):
             dtypedict.update({i: sqlalchemy.types.INT()})
@@ -45,6 +44,7 @@ def main(csv_path):
         table_name = splitext(basename(csv_path))[0]
     except IOError as e:
         print('File not found')
+        exit()
     
     # если нет такой таблицы, создаем ее
     # таблица называется так же, как назван csv-файл.

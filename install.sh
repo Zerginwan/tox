@@ -19,6 +19,6 @@ SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo "Installing yq. Probably will need sudo"
 apt install yq -y
 
-yq e -i '.service.flask.labels[1] = "traefik.http.routers.whoami.rule=\'Host(\`strenv(NAME)\`) && PathPrefix(\`/py/\`)\'"' "$SCRIPT_DIR/docker-compose.yml"
-yq e -i '.service.js.labels[1] = "traefik.http.routers.whoami.rule=Host(\`strenv(NAME)\`)"' "$SCRIPT_DIR/docker-compose.yml"
+yq e -i '.service.flask.labels[1] = "traefik.http.routers.whoami.rule=\'Host(\`strenv(HOSTNAME)\`) && PathPrefix(\`/py/\`)\'"' "$SCRIPT_DIR/docker-compose.yml"
+yq e -i '.service.js.labels[1] = "traefik.http.routers.whoami.rule=Host(\`strenv(HOSTNAME)\`)"' "$SCRIPT_DIR/docker-compose.yml"
 echo "done"
