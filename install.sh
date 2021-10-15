@@ -16,7 +16,7 @@ then
 fi
 echo "OK"
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-echo "Installing yq. Probably will need sudo"
+echo "Installing yq. will need sudo"
 apt install yq -y
 
 yq e -i '.service.flask.labels[1] = "traefik.http.routers.whoami.rule=\'Host(\`strenv(HOSTNAME)\`) && PathPrefix(\`/py/\`)\'"' "$SCRIPT_DIR/docker-compose.yml"

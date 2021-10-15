@@ -74,7 +74,8 @@ def main(args):
         args_for_table = get_args_for_table_from_column_names(dt)
         # Создаем таблицу. 
         dt.to_sql(table_name, engine, if_exists='append', index=True, method='multi', dtype=args_for_table)
-        
+    else:
+        print('Table %s exists already' % table_name)
 
 
     
