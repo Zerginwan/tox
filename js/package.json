@@ -19,7 +19,9 @@
   "homepage": "https://github.com/Zerginwan/tox#readme",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "body-parser": "^1.19.0",
     "express": "^4.17.1",
+    "js-yaml": "^4.1.0",
     "jsonwebtoken": "^8.5.1",
     "pg": "^8.7.1",
     "pg-hstore": "^2.3.4",
