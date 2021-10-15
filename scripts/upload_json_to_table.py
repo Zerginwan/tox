@@ -73,7 +73,7 @@ def main(args):
         dt = pandas.DataFrame(dt)
         args_for_table = get_args_for_table_from_column_names(dt)
         # Создаем таблицу. 
-        dt.to_sql(table_name, engine, if_exists='append', index=False, method='multi', dtype=args_for_table)
+        dt.to_sql(table_name, engine, if_exists='append', index=True, method='multi', dtype=args_for_table)
         
 
 
