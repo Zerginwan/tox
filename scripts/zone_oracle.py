@@ -1,3 +1,10 @@
+import pandas as pd
+import json
+import csv 
+import numpy as np
+import openpyxl
+import geopandas as gpd
+
 # ядро скрипта, считающее по районам
 def mfc_oracle(territory=moscow_admzones['adm_zid']):
     '''
