@@ -61,8 +61,12 @@ def main(args):
         for column in columns:
             row[column] = item[column]
         # добавляем координаты к списку
-        row['coorX'] = item['geodata_center']['coordinates'][0]
-        row['coorY'] = item['geodata_center']['coordinates'][1]
+        if 'geodata_center' in item.keys() and 'coordinates' in item['geodata_center'].keys():
+            row['coorX'] = item['geodata_center']['coordinates'][0]
+            row['coorY'] = item['geodata_center']['coordinates'][1]
+        else:
+            row['coorX'] = item['geoData']['coordinates'][0][0]
+            row['coorY'] = item['geoData']['coordinates'][0][1]
         # вычисляем номер ячейки
         row['zid'] = get_zid(row['coorX'], row['coorY'], coordinates_dt)
         # добавляем строку к общему списку
