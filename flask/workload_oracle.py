@@ -18,6 +18,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
     # подключаем конфиг
     config = yaml.safe_load(open(".config.yml"))
     # создаем "подключение" к БД
+    # TODO закомментировать при сборке
     engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
     # загружаем из базы конфиг для объекта
     type_config = pandas.read_sql_query(
@@ -70,23 +71,21 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         all_population = 0
         for n_sector in neighbour_sectors:
             val = cells_df.query('cell_zid == @n_sector')['population'].values
-            if val and len(val) > 0:
+            if val.size > 0:
                 all_population += int(val[0])
         # индекс коэффицент заполненности сектора
-        weight = type_config['population_req'] / all_population
+        if all_population > 0:
+            weight = type_config['population_req'] / all_population
         
         # добавляем 
         for n_sector in neighbour_sectors:
             cells_df[cells_df['cell_zid'] == n_sector]['weight'].add(weight)
-            print(cells_df[cells_df['cell_zid'] == n_sector]['weight'])
 
     # функция находит индекс удовлетворенности в зависимоти от населения и возвращает Series из одного элемента
     def find_index_pop(row:pandas.Series):
         for i in range(len(weight_dict)):
-            i = i + 1
-            print(row['weight'].value)
-            if weight_dict[i] > row['weight'].value:
-                return pandas.Series(i)
+            if weight_dict[i]['min_treshhold'] >= row['weight']:
+                return pandas.Series(weight_dict[i]['id'])
     
     
     # объявляем словарь для ответа
@@ -112,6 +111,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
                 s.center_lon as center_lon,
                 s.center_lat as center_lat,
                 array_agg(a.adm_zid) as adm_zid,
+                array_agg(a.area_peresechenia_s_admzone_kv_km) as area_peresechenia_s_admzone_kv_km,
                 array_agg(a.adm_name) as adm_name,
                 array_agg(a.okrug_name) as okrug_name,
                 array_agg(a.sub_ter) as sub_ter,
@@ -127,14 +127,13 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
             ''' % ( query_pop_add, query_pop_add, year),
             con=engine
         )
-    cells_df['weight'].add(0)
+    cells_df['weight'] = 0
     # забираем все нужные нам объекты
     objects_df = pandas.read_sql_query(
             "SELECT * FROM ""%s"";" % type_config['table_name'],
             con=engine, index_col='index'
         )
     
-    print(objects_df)
     #добавляем "добавленные вручную" объекты для расчета
     for addon in addition_objects:
         objects_df.append(pandas.Series(addon),ignore_index=True)
@@ -146,27 +145,34 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
             ).to_dict('records')
     # если тип ограничения - range, то начисляем веса на сектора и вычисляем наиболее часто встречающееся число
     if type_config['range_type'] == 'range':
+        # добавляем веса всем секторам в радиусе какого-либо объекта
         start_time1 = time.monotonic()
         objects_df.apply(add_weight, axis=1)
         end_time1 = time.monotonic()
         print('add_weight')
         print(timedelta(seconds=end_time1 - start_time1))
+        # считаем индекс
         start_time2 = time.monotonic()
-        
-        cells_df['index_pop'] = cells_df.apply(find_index_pop)
+        cells_df['index_pop'] = cells_df.apply(find_index_pop, axis=1)
         end_time2 = time.monotonic()
         print('index_pop')
         print(timedelta(seconds=end_time2 - start_time2))
         start_time3 = time.monotonic()
-        cells_df['index_pop_adm_zone'] = cells_df.groupby('adm_zid',axis=1)['weight'].agg(pandas.Series.mode())
+        adms_df = cells_df[['adm_zid','adm_name','okrug_okato']]
+        print(adms_df)
+        adms_df['index_pop_adm_zone'] = adms_df
+        adms_df['index_pop_adm_zone'] = cells_df.groupby('adm_zid')['index_pop'].agg(pandas.Series.mode)
         end_time3 = time.monotonic()
         print('index_pop_adm_zone')
         print(timedelta(seconds=end_time3 - start_time3))
+        print(adms_df)
+        
         start_time4 = time.monotonic()
-        cells_df['index_pop_okato'] = cells_df.groupby('okrug_okato')['weight'].agg(pandas.Series.mode())
+        cells_df['index_pop_okato'] = cells_df.groupby('okrug_okato',axis=0)['index_pop'].mode()
         end_time4 = time.monotonic()
         print('index_pop_okato')
         print(timedelta(seconds=end_time4 - start_time4))
+        
         answer['data'] = {}
         answer['data'].update({"objects":objects_df.to_json(orient='records')})
         answer['data'].update({"sectors":cells_df.to_json(orient='records')})
