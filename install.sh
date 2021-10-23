@@ -22,3 +22,4 @@ apt install yq -y
 yq e -i '.service.flask.labels[1] = "traefik.http.routers.whoami.rule=\'Host(\`strenv(HOSTNAME)\`) && PathPrefix(\`/py/\`)\'"' "$SCRIPT_DIR/docker-compose.yml"
 yq e -i '.service.js.labels[1] = "traefik.http.routers.whoami.rule=Host(\`strenv(HOSTNAME)\`)"' "$SCRIPT_DIR/docker-compose.yml"
 echo "done"
+echo "Please don't forget to execute ""CREATE EXTENSION postgis;"" on your database!"
