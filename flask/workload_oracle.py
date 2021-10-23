@@ -157,21 +157,19 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         end_time2 = time.monotonic()
         print('index_pop')
         print(timedelta(seconds=end_time2 - start_time2))
-        start_time3 = time.monotonic()
-        adms_df = cells_df[['adm_zid','adm_name','okrug_okato']]
-        print(adms_df)
-        adms_df['index_pop_adm_zone'] = adms_df
-        adms_df['index_pop_adm_zone'] = cells_df.groupby('adm_zid')['index_pop'].agg(pandas.Series.mode)
-        end_time3 = time.monotonic()
-        print('index_pop_adm_zone')
-        print(timedelta(seconds=end_time3 - start_time3))
-        print(adms_df)
-        
-        start_time4 = time.monotonic()
-        cells_df['index_pop_okato'] = cells_df.groupby('okrug_okato',axis=0)['index_pop'].mode()
-        end_time4 = time.monotonic()
-        print('index_pop_okato')
-        print(timedelta(seconds=end_time4 - start_time4))
+        # print(cells_df)
+        # start_time3 = time.monotonic()
+        # adms_df = cells_df.groupby('adm_zid')['index_pop'].agg(pandas.Series.mode)
+        # end_time3 = time.monotonic()
+        # print('index_pop_adm_zone')
+        # print(timedelta(seconds=end_time3 - start_time3))
+        # print(adms_df)
+        # 
+        # start_time4 = time.monotonic()
+        # cells_df['index_pop_okato'] = cells_df.groupby('okrug_okato',axis=0)['index_pop'].mode()
+        # end_time4 = time.monotonic()
+        # print('index_pop_okato')
+        # print(timedelta(seconds=end_time4 - start_time4))
         
         answer['data'] = {}
         answer['data'].update({"objects":objects_df.to_json(orient='records')})
