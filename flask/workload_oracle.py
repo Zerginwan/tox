@@ -92,9 +92,13 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
     answer = {"warnings": None, "errors": None}
     # формируем колонку населения
     query_pop_add = []
-    for flag in type_config['population_flags']:
-        query_pop_add.append("SUM(cl.%s)" % flag)
-    query_pop_add = ' + '.join(query_pop_add)
+    if type_config['population_flags']:
+        for flag in type_config['population_flags']:
+            query_pop_add.append("SUM(cl.%s)" % flag)
+        query_pop_add = ' + '.join(query_pop_add)
+    else:
+        query_pop_add = '-1'
+    
     # Проверяем существование таблицы за нужный год. Если ее нет - ставим 2021 и пишем warning
     if not inspect(engine).has_table("%i_CLocation" % year):
         if not answer['warnings']:
@@ -146,35 +150,46 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
     # если тип ограничения - range, то начисляем веса на сектора и вычисляем наиболее часто встречающееся число
     if type_config['range_type'] == 'range':
         # добавляем веса всем секторам в радиусе какого-либо объекта
-        start_time1 = time.monotonic()
+        
         objects_df.apply(add_weight, axis=1)
-        end_time1 = time.monotonic()
-        print('add_weight')
-        print(timedelta(seconds=end_time1 - start_time1))
         # считаем индекс
-        start_time2 = time.monotonic()
         cells_df['index_pop'] = cells_df.apply(find_index_pop, axis=1)
-        end_time2 = time.monotonic()
-        print('index_pop')
-        print(timedelta(seconds=end_time2 - start_time2))
-        # print(cells_df)
-        # start_time3 = time.monotonic()
         # adms_df = cells_df.groupby('adm_zid')['index_pop'].agg(pandas.Series.mode)
-        # end_time3 = time.monotonic()
-        # print('index_pop_adm_zone')
-        # print(timedelta(seconds=end_time3 - start_time3))
-        # print(adms_df)
-        # 
-        # start_time4 = time.monotonic()
         # cells_df['index_pop_okato'] = cells_df.groupby('okrug_okato',axis=0)['index_pop'].mode()
-        # end_time4 = time.monotonic()
-        # print('index_pop_okato')
-        # print(timedelta(seconds=end_time4 - start_time4))
         
         answer['data'] = {}
         answer['data'].update({"objects":objects_df.to_json(orient='records')})
         answer['data'].update({"sectors":cells_df.to_json(orient='records')})
         return answer
+    else:
+        
+        adms_df = pandas.read_sql_query(
+            "SELECT adm_zid, MAX(adm_name), array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
+
+            con=engine
+        )
+
+        obj_list = objects_df['zid'].values.tolist()
+        adms_list = adms_df['cell_zid'].values.tolist()
+        # складываем списки списков в большой список
+        adms_cell_zid_list = sum(adms_list, [])
+        print(obj_list)
+        for i in obj_list:
+            if i in adms_cell_zid_list:
+                adms_df = adms_df[['@i in cell_zid'], 'index_pop'].append(1)
+
+        adms_df = adms_df[['index_pop < 1'],'index_pop'].append(0)
+        
+
+        okrugs_df = pandas.read_sql_query(
+            "SELECT okrug_okato, okrug_name, array_agg(adm_zid), array_agg(adm_name) FROM adm_zones GROUP BY okrug_okato;",
+            con=engine
+        )
+        answer['data'] = {}
+        answer['data'].update({"objects":objects_df.to_json(orient='records')})
+        answer['data'].update({"adm_zones":adms_df.to_json(orient='records')})
+        return answer
+        
     
 
 
@@ -305,6 +320,6 @@ if __name__ == "__main__":
     
     start_time = time.monotonic()
     
-    print(workload_oracle(object_type_id=2))
+    print(workload_oracle(object_type_id=1))
     end_time = time.monotonic()
     print(timedelta(seconds=end_time - start_time))

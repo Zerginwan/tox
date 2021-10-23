@@ -1,16 +1,17 @@
 # syntax=docker/dockerfile:1
 
-FROM alpine:latest
+FROM python:3.9-bullseye
 
 WORKDIR /app
 
 COPY . .
-RUN apk add --no-cache \
+RUN apt update &&\
+    apt install -y \
     python3 \
-    cmd:pip3 \
-    uwsgi-python3 \
+    python3-pip \
+    uwsgi-core \
     && pip3 install -r requirements.txt \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 80 9191
 
@@ -22,4 +23,3 @@ CMD ["uwsgi", \
             "--plugin", "python3",\
             "--wsgi-file", "app.py",\
             "--callable", "app"]
-
