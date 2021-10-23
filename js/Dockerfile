@@ -8,7 +8,7 @@ RUN npm install
 
 WORKDIR /tox_app/client
 
-RUN npm install && npm run build && rmdir src && rmdir public && rmdir node_modules
+RUN npm install && npm run build && rm -rf src && rm -rf public && rm -rf node_modules
 
 EXPOSE 3000
 
