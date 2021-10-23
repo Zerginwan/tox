@@ -14,9 +14,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const db = require('./models');
 const Role = db.role;
 
-db.sequelize.sync().then(() => {
-  initial();
-});
+db.sequelize.sync();
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}...`);
