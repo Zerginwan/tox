@@ -8,9 +8,8 @@ services:
       - memcached
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule='Host(`hostname.example.com`) && PathPrefix(`/py/`)'"
-      - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+      - "traefik.http.routers.flask.rule=Host(`hostname.example.com`) && PathPrefix(`/py/`)"
+      - "traefik.http.routers.flask.entrypoints=web"
     volumes:
       - './.config.yml:/app/.config.yml' 
   
@@ -19,11 +18,10 @@ services:
     restart: "always"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`hostname.example.com`)"
-      - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+      - "traefik.http.routers.js.rule=Host(`hostname.example.com`)"
+      - "traefik.http.routers.js.entrypoints=npm"
     volumes:
-      - './.config.yml:/app/.config.yml'
+      - './.config.yml:/tox_app/.config.yml'
   
   memcached:
     image: memcached:1-alpine
@@ -37,10 +35,12 @@ services:
     image: "traefik:v2.5"
     container_name: "traefik"
     command:
-      - "--api.insecure=true"
+      - "--api.insecure=false"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.npm.address=:3000"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=postmaster@example.com"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
@@ -53,10 +53,12 @@ services:
 ###
 # Расскомментировать для поднятия PSQL сервера
 # Настройки должны совпадать с теми, что в .config.yml
-# В качестве db.host в этом случае будет равен "psql" (имя службы docker-compose)
+# Обязательно поставить postgis!
+# 
+# В качестве db.host в этом случае будет "psql" (имя службы docker-compose)
 ###
   # psql:
-    # image: postgres:13.4-alpine
+    # image: postgis/postgis:13-master
     # alias: "psql"
     # restart: always
     # ports:

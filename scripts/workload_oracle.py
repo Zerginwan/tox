@@ -27,7 +27,7 @@ def workload_oracle(object=XX, object_id=XX, sector_id=XX):
             # перебираем значения в списке объектов
             for id in object_id:
             
-                # определяем переменную для подсчета охваченного населения
+                # объявляем переменную для подсчета охваченного населения
                 total_pop = 0
                 
                 # определяем занятый объектом сектор
@@ -80,8 +80,10 @@ def workload_oracle(object=XX, object_id=XX, sector_id=XX):
                 total_pop = 0
                 
                 # находим объект, расположенный в секторе
-                try:
-                    object_sector = object.query('zid == id')['zid']
+                object_sector = object.query('zid == id')['zid']
+                if object_sector is not None:
+                    # список секторов из ренджа    
+                    # TODO make_cross()
                     workload_range = moscow_fishnet.loc[moscow_fishnet['cell_zid'] == object_sector]['cross']
             
                     # пробегаем по всем секторам, охваченным объектом, чтобы наполнить total_pop
@@ -122,8 +124,8 @@ def workload_oracle(object=XX, object_id=XX, sector_id=XX):
                 
                 # если в секторе нет объектов, дополняем ответ указанием номера пустого сектора
                 
-                else:
-                    answer['empty_sector' + id] = id
+                except:
+                    answer['empty_sectors'].append(id)
             
             # возвращаем ответ    
                    

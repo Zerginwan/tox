@@ -1,17 +1,19 @@
-FROM node
+FROM node AS build
 
 WORKDIR /tox_app
 
 COPY .  .
 
-RUN npm install
-
 WORKDIR /tox_app/client
 
 RUN npm install && npm run build && rm -rf src && rm -rf public && rm -rf node_modules
 
-EXPOSE 3000
-
+FROM node AS final
 WORKDIR /tox_app
+
+COPY --from=build /tox_app/ /tox_app/
+RUN npm install
+
+EXPOSE 3000
 
 CMD ["npm", "start"]

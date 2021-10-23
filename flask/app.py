@@ -1,11 +1,11 @@
 #!flask/bin/python
 from flask import Flask, request
-from werkzeug.contrib.cache import MemcachedCache
 import yaml
+from workload_oracle import workload_oracle 
 
 config = yaml.safe_load(open(".config.yml"))
 
-cache = MemcachedCache(['%s:%s'%(config['memcached']['host'],config['memcached']['port'])])
+# cache = MemcachedCache(['%s:%s'%(config['memcached']['host'],config['memcached']['port'])])
 
 
 app = Flask('flask')
