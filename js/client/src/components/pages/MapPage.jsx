@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useHistory } from "react-router-dom";
 
 import DrawerHeader from "../atoms/DrawerHeader";
 
 import ToxMap from "../organisms/Map";
 import Menu from "../organisms/Menu";
 
-import { styled, useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
+import { styled } from "@mui/material/styles";
 
 const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
   ({ theme, open }) => ({
@@ -30,6 +31,19 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
 function MapPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState(0);
+
+  const history = useHistory();
+
+  useEffect(() => {
+    fetch("/api/test/user", {
+      headers: {
+        "x-access-token": localStorage.getItem("accessToken"),
+      },
+    }).catch((error) => {
+      console.log(error);
+      history.push("/auth/login");
+    });
+  }, []);
 
   const toggleSidebar = () => {
     setIsSidebarOpen((s) => !s);

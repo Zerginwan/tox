@@ -11,7 +11,6 @@ const bcrypt = require("bcryptjs");
 exports.signup = (req, res) => {
   User.create({
     login: req.body.login,
-    email: req.body.email,
     password: bcrypt.hashSync(req.body.password, 8)
   })
     .then(user => {
@@ -28,7 +27,6 @@ exports.signup = (req, res) => {
           });
         });
       } else {
-        // user role = 1
         user.setRoles([1]).then(() => {
           res.send({ message: "User was registered successfully!" });
         });

@@ -1,23 +1,47 @@
 const express = require('express');
 const bodyParser = require("body-parser");
 
-const PORT = process.env.PORT || 3000;
+const router = express.Router();
+const path = require('path');
+
+// Create initial user 
+const bcrypt = require("bcryptjs");
+
+const PORT = process.env.PORT || 3001;
 
 const app = express();
-
-require('./routes/auth.routes')(app);
-require('./routes/user.routes')(app);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const db = require('./models');
-const Role = db.role;
+require('./routes/auth.routes')(app);
+require('./routes/user.routes')(app);
 
-db.sequelize.sync();
+app.use('/static', express.static('client/build/static'));
+
+router.get('/', function (req, res) {
+  res.sendFile(path.join(__dirname + '/client/build/index.html'));
+});
+
+app.use('/', router);
+
+const db = require('./models');
+
+db.sequelize.sync().then(() => {
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}...`);
 })
+
+// function createInitialUser() {
+//   User.create({
+//     id: 0,
+//     login: 'admin',
+//     password: bcrypt.hashSync('admin', 8),
+//     role: 2,
+//   })
+// };
 
 // function initial() {
 //   Role.create({
