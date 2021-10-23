@@ -3,6 +3,8 @@ import yaml, pandas, sys, sqlalchemy, json
 from sqlalchemy import *
 ##
 # Скрипт заточен под формат с data.mos.ru
+# usage: 
+# python3 upload_json_table.py table_name.json needed_column_1 needed_column_2 ... needed_column_x
 ##
 
 # подключаем конфиг
@@ -39,6 +41,7 @@ def get_zid(coordX,coordY,data):
 
 def main(args):
     json_path = args[0]
+    # Таблица будет названа именем файла
     table_name = splitext(basename(json_path))[0]
     try:
         with open(json_path) as json_file:
@@ -46,26 +49,37 @@ def main(args):
     except IOError as e:
         print('File not found')
         exit()
+    # подгружаем координаты в датафрейм
     coordinates_dt = pandas.read_sql('select * from coordinates', index_col=['min_x','min_y','max_x','max_y'] ,con=engine)
     
     columns = args[1:]
     dt = []
+    # парсим Json
     for item in list:
         row = {}
+        #Добавляем нужные колонки к списку
         for column in columns:
             row[column] = item[column]
-        row['coorX'] = item['geodata_center']['coordinates'][0]
-        row['coorY'] = item['geodata_center']['coordinates'][1]
+        # добавляем координаты к списку
+        if 'geodata_center' in item.keys() and 'coordinates' in item['geodata_center'].keys():
+            row['coorX'] = item['geodata_center']['coordinates'][0]
+            row['coorY'] = item['geodata_center']['coordinates'][1]
+        else:
+            row['coorX'] = item['geoData']['coordinates'][0][0]
+            row['coorY'] = item['geoData']['coordinates'][0][1]
+        # вычисляем номер ячейки
         row['zid'] = get_zid(row['coorX'], row['coorY'], coordinates_dt)
+        # добавляем строку к общему списку
         dt.append(row)
     
     if not inspect(engine).has_table(table_name):
-        # создаем список аргументов для sqlalchemy, разбирая типы даных data
+        # создаем список аргументов для sqlalchemy, разбирая типы даных в dt
         dt = pandas.DataFrame(dt)
         args_for_table = get_args_for_table_from_column_names(dt)
         # Создаем таблицу. 
-        dt.to_sql(table_name, engine, if_exists='append', index=False, method='multi', dtype=args_for_table)
-        
+        dt.to_sql(table_name, engine, if_exists='append', index=True, method='multi', dtype=args_for_table)
+    else:
+        print('Table %s exists already' % table_name)
 
 
     

@@ -3,7 +3,6 @@ services:
 
   flask:
     build: "flask"
-    container-name: "flask"
     restart: "always"
     depends_on:
       - memcached
@@ -17,7 +16,6 @@ services:
   
   js:
     build: "js"
-    container-name: "js"
     restart: "always"
     labels:
       - "traefik.enable=true"
@@ -29,7 +27,6 @@ services:
   
   memcached:
     image: memcached:1-alpine
-    container-name: "memcached"
     entrypoint:
       - memcached
       - -m 256
@@ -60,7 +57,7 @@ services:
 ###
   # psql:
     # image: postgres:13.4-alpine
-    # container-name: "psql"
+    # alias: "psql"
     # restart: always
     # ports:
       # - 5432:5432
