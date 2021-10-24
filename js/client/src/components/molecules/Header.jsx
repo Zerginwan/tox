@@ -8,6 +8,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
+  backgroundColor: "#c22",
   transition: theme.transitions.create(["margin", "width"], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -26,7 +27,7 @@ function Header(props) {
   const { isOpen, toggleSidebar } = props;
 
   return (
-    <AppBar position="fixed" open={isOpen} sx={{ backgroundColor: "#c22" }}>
+    <AppBar position="fixed" open={isOpen}>
       <Toolbar>
         <IconButton
           size="large"
