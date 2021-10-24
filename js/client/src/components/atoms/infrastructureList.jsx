@@ -15,7 +15,7 @@ import StarBorder from "@mui/icons-material/StarBorder";
 import { styled } from "@mui/material/styles";
 
 const ListItemIcon = styled(ListItemIconMui)(({ theme }) => ({
-  color: theme.palette.secondary.main,
+  color: "#c22",
 }));
 
 const listItemIcons = {
@@ -27,11 +27,23 @@ const listItemIcons = {
 function InfrastructureList(props) {
   const { visualProperties } = props;
 
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(
+    visualProperties.objectCategories.map((x) => ({
+      id: x.id,
+      isOpen: false,
+    }))
+  );
 
-  const handleClick = () => {
-    setOpen(!open);
+  const handleClick = (id) => {
+    setOpen((prevState) => {
+      const newState = [...prevState];
+      return newState.map((x) =>
+        x.id === id ? { ...x, isOpen: !x.isOpen } : x
+      );
+    });
   };
+
+  console.log(open);
 
   return (
     <List
@@ -45,10 +57,36 @@ function InfrastructureList(props) {
       }
     >
       {visualProperties.objectCategories.map((x) => (
-        <ListItemButton key={x.id}>
-          <ListItemIcon>{listItemIcons[x.id]}</ListItemIcon>
-          <ListItemText primary={x.value} />
-        </ListItemButton>
+        <div key={x.id}>
+          <ListItemButton
+            onClick={() => {
+              handleClick(x.id);
+            }}
+          >
+            {listItemIcons[x.id] ? (
+              <ListItemIcon>{listItemIcons[x.id]}</ListItemIcon>
+            ) : null}
+            <ListItemText primary={x.value} />
+          </ListItemButton>
+          <Collapse
+            in={open.find((item) => item.id === x.id).isOpen}
+            timeout="auto"
+            unmountOnExit
+          >
+            <List component="div" disablePadding>
+              {visualProperties.objects
+                .filter((object) => object.object_category === x.id)
+                .map((item) => (
+                  <ListItemButton sx={{ pl: 4 }}>
+                    <ListItemIcon>
+                      <StarBorder />
+                    </ListItemIcon>
+                    <ListItemText primary={item.display} />
+                  </ListItemButton>
+                ))}
+            </List>
+          </Collapse>
+        </div>
       ))}
     </List>
   );
