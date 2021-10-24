@@ -1,6 +1,9 @@
 from sqlalchemy.sql.expression import table
 
 
+import ast
+
+
 def get_doc(okato: int, zone_type: str = 'adm_zone', object_type_id_list: list[int] = [1,2] ):
     '''
     Функция возвращет файл с отчетом 

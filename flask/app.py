@@ -3,7 +3,7 @@ from flask import Flask, request
 from pymemcache.client.base  import PooledClient
 from pymemcache.client.retrying import RetryingClient
 from pymemcache.exceptions import MemcacheUnexpectedCloseError
-import yaml
+import yaml, json
 from workload_oracle import workload_oracle 
 from get_sectors import get_sectors 
 from sqlalchemy import create_engine, inspect
@@ -67,4 +67,4 @@ def internal():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0",port=80,debug=False)

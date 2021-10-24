@@ -14,6 +14,6 @@ WORKDIR /tox_app
 COPY --from=build /tox_app/ /tox_app/
 RUN npm install
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["npm", "start"]
