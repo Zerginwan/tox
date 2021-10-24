@@ -10,6 +10,7 @@ RUN apt update &&\
     python3 \
     python3-pip \
     uwsgi-core \
+    uwsgi-plugin-python3 \
     pandoc \
     && pip3 install -r requirements.txt \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

@@ -2,8 +2,10 @@
 from flask import Flask, request
 from pymemcache.client.base  import PooledClient
 from pymemcache.client.retrying import RetryingClient
+from pymemcache.exceptions import MemcacheUnexpectedCloseError
 import yaml
 from workload_oracle import workload_oracle 
+from get_sectors import get_sectors 
 from sqlalchemy import create_engine, inspect
 
 config = yaml.safe_load(open(".config.yml"))
@@ -11,7 +13,7 @@ config = yaml.safe_load(open(".config.yml"))
 # cache = MemcachedCache(['%s:%s'%(config['memcached']['host'],config['memcached']['port'])])
 
 # запускаем app
-app = Flask('flask')
+app = Flask(__name__)
 # подключаем кэш
 base_client = PooledClient(
                 (config['memcached']['host'],config['memcached']['port']), 
@@ -27,13 +29,14 @@ client = RetryingClient(
 # создаем "подключение" к БД
 engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
 # # /py открыта всем
-# @app.route('/py/magic', methods=['GET','POST'])
-# def external():
-#     if request.method == 'GET':
-#         return request.args.get('type')
-#     if request.method == 'POST':
-#         data = request.get_json()
-#         return data
+@app.route('/py/sectors', methods=['GET','POST'])
+def external():
+    if request.method == 'GET':
+        # answer = client.get('sectors')
+        # if answer is None:
+        answer = get_sectors()
+        # client.set('sectors', answer, ttl=2505600)
+        return answer
 
 # /internal недоступна извне
 @app.route('/internal', methods=['GET','POST'])
@@ -55,7 +58,7 @@ def internal():
         answer = client.get(str(args))
         if answer is None:
             answer = workload_oracle(*args)
-        client.set(str(args), answer)
+        client.set(str(args), answer, ttl=2505600)
 
         # rv = cache.get('my-item')
         # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
