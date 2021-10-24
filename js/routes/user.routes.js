@@ -11,14 +11,20 @@ module.exports = function (app) {
   });
 
   app.get(
-    "/api/getAllUsers",
+    "/api/users",
     [authJwt.verifyToken, authJwt.isManagerOrAdmin],
     controller.getAllUsers
   );
 
   app.get(
-    "/api/test/user",
+    "/api/sectors",
     [authJwt.verifyToken],
-    controller.userBoard
+    controller.getSectors
+  );
+
+  app.get(
+    "/api/visualProperties",
+    [authJwt.verifyToken],
+    controller.getVisualProperties
   );
 };

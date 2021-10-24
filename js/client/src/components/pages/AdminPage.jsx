@@ -24,7 +24,7 @@ function AdminPage() {
       isLoading: true,
     }));
 
-    fetch("/api/getAllUsers", {
+    fetch("/api/users", {
       headers: {
         "x-access-token": localStorage.getItem("accessToken"),
       },
@@ -75,7 +75,7 @@ function AdminPage() {
       >
         Cоздать пользователя
       </Button>
-      <SignUpPopup isOpen={isSignUpOpen} handleClose={handleClose}/>
+      <SignUpPopup isOpen={isSignUpOpen} handleClose={handleClose} />
     </Container>
   );
 }

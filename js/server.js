@@ -4,7 +4,6 @@ const bodyParser = require("body-parser");
 const router = express.Router();
 const path = require('path');
 
-// Create initial user 
 const bcrypt = require("bcryptjs");
 
 const PORT = process.env.PORT || 3001;

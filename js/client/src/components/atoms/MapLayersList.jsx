@@ -41,7 +41,7 @@ function MapLayersList(props) {
         </ListItemIcon>
         <ListItemText primary="Районы" />
       </ListItemButton>
-      <ListItemButton>
+      <ListItemButton onClick={() => selectLayer(2)}>
         <ListItemIcon>
           <ViewModuleIcon />
         </ListItemIcon>

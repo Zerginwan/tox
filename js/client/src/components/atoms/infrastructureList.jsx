@@ -15,10 +15,18 @@ import StarBorder from "@mui/icons-material/StarBorder";
 import { styled } from "@mui/material/styles";
 
 const ListItemIcon = styled(ListItemIconMui)(({ theme }) => ({
-  color: "#c22",
+  color: theme.palette.secondary.main,
 }));
 
-function InfrastructureList() {
+const listItemIcons = {
+  1: <HealthAndSafetyIcon />,
+  2: <SchoolIcon />,
+  3: <BusinessIcon />,
+};
+
+function InfrastructureList(props) {
+  const { visualProperties } = props;
+
   const [open, setOpen] = useState(true);
 
   const handleClick = () => {
@@ -36,36 +44,12 @@ function InfrastructureList() {
         </ListSubheader>
       }
     >
-      <ListItemButton>
-        <ListItemIcon>
-          <SchoolIcon />
-        </ListItemIcon>
-        <ListItemText primary="Образование" />
-      </ListItemButton>
-
-      <ListItemButton>
-        <ListItemIcon>
-          <HealthAndSafetyIcon />
-        </ListItemIcon>
-        <ListItemText primary="Медицина" />
-      </ListItemButton>
-      <ListItemButton onClick={handleClick}>
-        <ListItemIcon>
-          <BusinessIcon />
-        </ListItemIcon>
-        <ListItemText primary="Госудраство" />
-        {open ? <ExpandLess /> : <ExpandMore />}
-      </ListItemButton>
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <List component="div" disablePadding>
-          <ListItemButton sx={{ pl: 4 }}>
-            <ListItemIcon>
-              <StarBorder />
-            </ListItemIcon>
-            <ListItemText primary="Starred" />
-          </ListItemButton>
-        </List>
-      </Collapse>
+      {visualProperties.objectCategories.map((x) => (
+        <ListItemButton key={x.id}>
+          <ListItemIcon>{listItemIcons[x.id]}</ListItemIcon>
+          <ListItemText primary={x.value} />
+        </ListItemButton>
+      ))}
     </List>
   );
 }

@@ -6,7 +6,9 @@ import DrawerHeader from "../atoms/DrawerHeader";
 import ToxMap from "../organisms/Map";
 import Menu from "../organisms/Menu";
 
+import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
 import { styled } from "@mui/material/styles";
 
 const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
@@ -29,19 +31,59 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
 );
 
 function MapPage() {
+  const [data, setData] = useState(null);
+  const [visualProperties, setVisualProperties] = useState(null);
+
+  const [status, setStatus] = useState({
+    isLoading: false,
+    isLoaded: false,
+    errors: null,
+  });
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState(0);
 
   const history = useHistory();
 
   useEffect(() => {
-    fetch("/api/test/user", {
+    setStatus((prevState) => ({
+      ...prevState,
+      isLoading: true,
+    }));
+
+    const getData = fetch("/api/sectors", {
       headers: {
         "x-access-token": localStorage.getItem("accessToken"),
       },
-    }).catch((error) => {
-      console.log(error);
-      history.push("/auth/login");
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        setData((prevState) => ({
+          ...prevState,
+          sectors: result,
+        }));
+      })
+      .catch((error) => {
+        console.log(error);
+        history.push("/auth/login");
+      });
+
+    const getVisualProperties = fetch("/api/visualProperties", {
+      headers: {
+        "x-access-token": localStorage.getItem("accessToken"),
+      },
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        setVisualProperties(result);
+      });
+
+    Promise.all([getData, getVisualProperties]).then(() => {
+      setStatus((prevState) => ({
+        ...prevState,
+        isLoading: false,
+        isLoaded: true,
+      }));
     });
   }, []);
 
@@ -53,19 +95,40 @@ function MapPage() {
     setSelectedLayer(value);
   };
 
-  return (
-    <Box sx={{ display: "flex" }}>
-      <Menu
-        isOpen={isSidebarOpen}
-        toggleSidebar={toggleSidebar}
-        selectLayer={selectLayer}
-      />
-      <Main open={isSidebarOpen}>
-        <DrawerHeader />
-        <ToxMap selectedLayer={selectedLayer} />
-      </Main>
-    </Box>
-  );
+  const render = () => {
+    if (status.isLoading) {
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100vh",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      );
+    }
+    if (status.isLoaded) {
+      return (
+        <Box sx={{ display: "flex" }}>
+          <Menu
+            isOpen={isSidebarOpen}
+            toggleSidebar={toggleSidebar}
+            selectLayer={selectLayer}
+            visualProperties={visualProperties}
+          />
+          <Main open={isSidebarOpen}>
+            <DrawerHeader />
+            <ToxMap selectedLayer={selectedLayer} data={data} />
+          </Main>
+        </Box>
+      );
+    }
+  };
+
+  return <div>{render()}</div>;
 }
 
 export default MapPage;

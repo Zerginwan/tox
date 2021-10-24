@@ -7,6 +7,7 @@ module.exports = {
   HOST: config.db.host,
   USER: config.db.username,
   PASSWORD: config.db.password,
+  PORT: config.db.port,
   DB: config.db.database,
   dialect: config.db.dialect,
 };

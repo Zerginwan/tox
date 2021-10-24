@@ -1,4 +1,5 @@
 const db = require("../models");
+const pool = require("../db/quieries");
 const User = db.user;
 
 exports.getAllUsers = (req, res) => {
@@ -14,6 +15,27 @@ exports.getAllUsers = (req, res) => {
   })
 };
 
-exports.userBoard = (req, res) => {
-  res.status(200).send("User Content.");
-};
+exports.getSectors = (req, res) => {
+  pool.query('SELECT * FROM sectors', (error, results) => {
+    if (error) {
+      res.status(500).json('Ошибка получения данных');
+    }
+    res.status(200).json(results.rows);
+  })
+}
+
+exports.getVisualProperties = (req, res) => {
+  (async () => {
+    try {
+      const objectCategories = await pool.query('SELECT * FROM object_categories')
+      const objects = await pool.query('SELECT * FROM objects');
+
+      res.status(200).json({
+        objectCategories: objectCategories.rows,
+        objects: objects.rows
+      });
+    } catch (e) {
+      res.status(500).json('Ошибка получения данных');
+    }
+  })();
+}
