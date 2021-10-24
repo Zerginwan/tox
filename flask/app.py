@@ -2,6 +2,7 @@
 from flask import Flask, request
 from pymemcache.client.base  import PooledClient
 from pymemcache.client.retrying import RetryingClient
+from pymemcache.exceptions import MemcacheUnexpectedCloseError
 import yaml
 from workload_oracle import workload_oracle 
 from get_sectors import get_sectors 
@@ -12,7 +13,7 @@ config = yaml.safe_load(open(".config.yml"))
 # cache = MemcachedCache(['%s:%s'%(config['memcached']['host'],config['memcached']['port'])])
 
 # запускаем app
-app = Flask('flask')
+app = Flask(__name__)
 # подключаем кэш
 base_client = PooledClient(
                 (config['memcached']['host'],config['memcached']['port']), 
@@ -31,10 +32,10 @@ engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{databa
 @app.route('/py/sectors', methods=['GET','POST'])
 def external():
     if request.method == 'GET':
-        answer = client.get('sectors')
-        if answer is None:
-            answer = get_sectors()
-        client.set('sectors', answer, ttl=2505600)
+        # answer = client.get('sectors')
+        # if answer is None:
+        answer = get_sectors()
+        # client.set('sectors', answer, ttl=2505600)
         return answer
 
 # /internal недоступна извне

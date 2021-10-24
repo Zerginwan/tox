@@ -28,22 +28,43 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
             ).loc[0].to_dict()
         
     # таблица с пресетом
-    table_name = "preset_%i_%i" %(object_type_id, year)
+    table_name_prefix = "preset_%i_%i_" %(object_type_id, year)
 
     # объявляем словарь для ответа
-    answer = {"warnings": None, "errors": None}
-    
-    # пробуем загрузить данные из пресета, если он есть
-    if sqlalchemy.inspect(engine).has_table(table_name):
-        answer['data'] = pandas.read_sql_query(
-                "SELECT * FROM \"%s\";" % table_name, 
-                con=engine
-            )
+    answer = {"data":{},"warnings": None, "errors": None}
+    # забираем все нужные нам объекты
+    objects_df = pandas.read_sql_query(
+            "SELECT * FROM ""%s"";" % type_config['table_name'],
+            con=engine, index_col='index'
+        )
+    answer['data'].update({"objects":objects_df.to_json(orient='records')})
+    answer_objects = ['adm_zones', 'okrugs']
+    # Если rane_type = range, нам нужны еще и сектора
+    if type_config['range_type'] == 'range':
+        answer_objects.append('sectors')
+    # пробуем загрузить данные из пресета, если они есть
+    # изначально считаем что все в порядке, пока не наткнемся на остуствие таблицы
+    can_do_preset = True
+    if to_database == True or len(addition_objects) > 0:
+        can_do_preset = False
     else:
+        for a_obj in answer_objects:
+            table_name = table_name_prefix + a_obj
+            if sqlalchemy.inspect(engine).has_table(table_name):
+                answer['data'][a_obj] = pandas.read_sql_query(
+                        "SELECT * FROM \"%s\";" % table_name, 
+                        con=engine
+                    ).to_json(orient='records')
+                answer['warnings'] = ['Data from preset']
+            else:
+                answer['warnings'] = ["Data from preset not found: not table with name %s" % table_name]
+                can_do_preset = False
+                break
+    
+    if not can_do_preset:
 
         # формируем колонку населения
         query_pop_add = []
-        print(type_config['population_flags'])
         if type_config['population_flags']:
             for flag in type_config['population_flags']:
                 query_pop_add.append("SUM(cl.%s)" % flag)
@@ -114,7 +135,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         def find_index_pop(row:pandas.Series):
             for i in range(len(weight_dict)):
                 if weight_dict[i]['min_treshhold'] >= row['weight']:
-                    return pandas.Series(weight_dict[i]['id'])
+                    return weight_dict[i]['id']
 
         # функция для определние среднего значения index_pop по округам и районам
         def pop_index_mode_from_another_df_by_cell_zid(data,another_df: pandas.DataFrame):
@@ -168,15 +189,11 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
                 con=engine
             )
         cells_df['weight'] = 0
-        # забираем все нужные нам объекты
-        objects_df = pandas.read_sql_query(
-                "SELECT * FROM ""%s"";" % type_config['table_name'],
-                con=engine, index_col='index'
-            )
-
+        
         #добавляем "добавленные вручную" объекты для расчета
-        for addon in addition_objects:
-            objects_df.append(pandas.Series(addon),ignore_index=True)
+        # TODO пока не работает. Передлеать на что-то не такое долгое
+        # for addon in addition_objects:
+            # objects_df.append(pandas.Series(addon),ignore_index=True)
 
         # загружаем из базы константы для индексов, чтобы moda выдавала нормальные значения, а у карты была читабельная инфографика
         weight_dict = pandas.read_sql_query(
@@ -193,7 +210,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
             # собираем отдельный объект по адм.районам
             adms_df = pandas.read_sql_query(
-                "SELECT adm_zid, MAX(adm_name) as adm_name, MAX(adm_oakto) as adm_okato, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
+                "SELECT adm_zid, MAX(adm_name) as adm_name, MAX(adm_okato) as adm_okato, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
 
                 con=engine
             )
@@ -211,8 +228,6 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
             cells_df['geometry'] = cells_df.apply(reshape_polygon_to_list,axis=1)
 
-            answer['data'] = {}
-            answer['data'].update({"objects":objects_df.to_json(orient='records')})
             answer['data'].update({"sectors":cells_df.to_json(orient='records')})
             answer['data'].update({"adm_zones":adms_df.to_json(orient='records')})
             answer['data'].update({"okrugs":okrugs_df.to_json(orient='records')})
@@ -235,20 +250,23 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
             )
             okrugs_df['index_pop'] = adms_df.apply(pop_index_mode_from_another_df_by_adm_zid, another_df=adms_df, axis=1)
 
-
-            answer['data'] = {}
-            answer['data'].update({"objects":objects_df.to_json(orient='records')})
+            
             answer['data'].update({"adm_zones":adms_df.to_json(orient='records')})
+            answer['data'].update({"okrugs":okrugs_df.to_json(orient='records')})
 
     # если нужно забписать в базу - записываем в базу
     if to_database:
-        answer['data'].to_sql(table_name, engine, if_exists='replace', index=False, method='multi')
+        to_db = {"sectors": cells_df, "adm_zones":adms_df, "okrugs": okrugs_df}
+        if type_config['range_type'] == 'range':
+            to_db.update({"sectors": cells_df})
+        for a_obj in answer_objects:
+            table_name = table_name_prefix + a_obj
+            to_db[a_obj].to_sql(table_name, engine, if_exists='replace', index=False, method='multi')
     # иначе возвращаем как есть
     else:
         return answer
 
 
 if __name__ == "__main__":
-    ## передаем путь к csv/xlsx в качестве первого и единственного параметра.
-    workload_oracle(1,to_database=True)
-    workload_oracle(2,to_database=True)
+        workload_oracle(1,year=2021,to_database=True)
+        workload_oracle(2,year=2021,to_database=True)

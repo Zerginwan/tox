@@ -1,4 +1,5 @@
 from sqlalchemy.sql.expression import table
+import sys
 
 
 def get_sectors():
@@ -27,6 +28,7 @@ def get_sectors():
             )
         sectors_df['geometry'] = sectors_df.apply(reshape_polygon_to_list,axis=1)
         answer['data'] = {}
+        print(sectors_df['geometry'], file=sys.stderr)
         answer['data'].update({"sectors":sectors_df.to_json(orient='records')})
     else:
         answer.update({"errors": "No table 'sectors' was found or something else went wrong!"})
