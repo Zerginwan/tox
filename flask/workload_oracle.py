@@ -1,3 +1,6 @@
+from numpy.core.defchararray import count
+
+
 def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list[list[float,float,int]] = [], to_database: bool = False):
     '''
     Функция расчета весов соответсвия стандартам по всем областям в выбранном приближении
@@ -13,7 +16,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
     '''
     from pandas.core.frame import DataFrame
-    import yaml, pandas, numpy, sqlalchemy
+    import yaml, pandas, numpy, sqlalchemy, ast
     from collections import Counter
 
     # подключаем конфиг
@@ -45,7 +48,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
     # пробуем загрузить данные из пресета, если они есть
     # изначально считаем что все в порядке, пока не наткнемся на остуствие таблицы
     can_do_preset = True
-    if to_database == True or len(addition_objects) > 0:
+    if to_database == True or len(addition_objects) > 0 or True:
         can_do_preset = False
     else:
         for a_obj in answer_objects:
@@ -60,7 +63,6 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
                 answer['warnings'] = ["Data from preset not found: not table with name %s" % table_name]
                 can_do_preset = False
                 break
-    
     if not can_do_preset:
 
         # формируем колонку населения
@@ -116,7 +118,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         # функция накидывания веса на сектора
         def add_weight(row:pandas.Series):
             # запрос - первращаем zid сектора с объектом в lon-lat geography. Ищем "соседей" с дистанцией до центра <= range + 50
-            neighbour_sectors = get_sectors_in_radius(row['zid'], type_config['range'])
+            neighbour_sectors = get_sectors_in_radius(int(row['zid']), type_config['range'])
             # считаем общее население соседей объекта
             all_population = 0
             for n_sector in neighbour_sectors:
@@ -126,15 +128,14 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
             # индекс коэффицент заполненности сектора
             if all_population > 0:
                 weight = type_config['population_req'] / all_population
-
             # добавляем 
             for n_sector in neighbour_sectors:
-                cells_df[cells_df['cell_zid'] == n_sector]['weight'].add(weight)
+                cells_df.loc[cells_df['cell_zid'] == n_sector,'weight'] =  cells_df[cells_df['cell_zid'] == n_sector]['weight'] + weight
 
         # функция находит индекс удовлетворенности в зависимоти от населения и возвращает Series из одного элемента
         def find_index_pop(row:pandas.Series):
             for i in range(len(weight_dict)):
-                if weight_dict[i]['min_treshhold'] >= row['weight']:
+                if  row['weight'] >= weight_dict[i]['min_treshhold']:
                     return weight_dict[i]['id']
 
         # функция для определние среднего значения index_pop по округам и районам
@@ -152,14 +153,23 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
                 return Counter(list(another_df.query('adm_zid in @filter')['index_pop'])).most_common(1)[0][0]
         #меняем полигоны на массив координат дял фронта
         def reshape_polygon_to_list(data):
-            return numpy.array(data['geometry'])
+            r = numpy.array(data['geometry'])
+            r = r.tolist()
+            r = r.replace('(','[').replace(')',']')
+            return r
 
         def object_counter(data, another_df: pandas.DataFrame):
                 for l in data['cell_zid']:
                     if l:
                         if not isinstance(l, (list)):
                             l =  [l]
-                        return another_df.query('zid in @l')['zid'].count()
+                        count = another_df.query('zid in @l')['zid'].count()
+                        if count > 0:
+                            r = 5
+                        else:
+                            r = 1
+                        return r
+                    
 
 
 
@@ -189,7 +199,6 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
                 con=engine
             )
         cells_df['weight'] = 0
-        
         #добавляем "добавленные вручную" объекты для расчета
         # TODO пока не работает. Передлеать на что-то не такое долгое
         # for addon in addition_objects:
@@ -197,7 +206,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
         # загружаем из базы константы для индексов, чтобы moda выдавала нормальные значения, а у карты была читабельная инфографика
         weight_dict = pandas.read_sql_query(
-                    "SELECT * FROM affinity_indexes ORDER BY id ASC;" , 
+                    "SELECT * FROM affinity_indexes ORDER BY id DESC;" , 
                     con=engine
                 ).to_dict('records')
         # если тип ограничения - range, то начисляем веса на сектора и вычисляем наиболее часто встречающееся число
@@ -205,12 +214,19 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
             # добавляем веса всем секторам в радиусе какого-либо объекта
 
             objects_df.apply(add_weight, axis=1)
+
             # считаем индекс
             cells_df['index_pop'] = cells_df.apply(find_index_pop, axis=1)
 
             # собираем отдельный объект по адм.районам
             adms_df = pandas.read_sql_query(
-                "SELECT adm_zid, MAX(adm_name) as adm_name, MAX(adm_okato) as adm_okato, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
+                '''SELECT 
+                    adm_zid, 
+                    MAX(adm_name) as adm_name, 
+                    MAX(adm_okato) as adm_okato, 
+                    array_agg(cell_zid) as cell_zid 
+                FROM adm_zones 
+                GROUP BY adm_zid;''',
 
                 con=engine
             )
@@ -220,7 +236,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
             #собираем отдельный объект по округам
             okrugs_df = pandas.read_sql_query(
-                "SELECT okrug_okato, MAX(okrug_name) as okrug_name, array_agg(adm_zid) as adm_zid, array_agg(adm_name) as adm_name, array_agg(adm_okato) as adm_okato, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY okrug_okato;",
+                "SELECT okrug_okato, MAX(okrug_name) as okrug_name, array_agg(DISTINCT adm_zid) as adm_zid, array_agg(DTSTINCT adm_name) as adm_name, array_agg(DISTINCT adm_okato) as adm_okato, array_agg(DISTINCT cell_zid) as cell_zid FROM adm_zones GROUP BY okrug_okato;",
                 con=engine
             )
             # считаем индекс для округов
@@ -233,9 +249,9 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
             answer['data'].update({"okrugs":okrugs_df.to_json(orient='records')})
 
         else:
-
+            
             adms_df = pandas.read_sql_query(
-                "SELECT adm_zid, MAX(adm_name), MAX(adm_okato) as adm_okato, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
+                "SELECT adm_zid, MAX(adm_name), MAX(adm_okato) as adm_okato, array_agg(DISTINCT cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
 
                 con=engine
             )
@@ -245,7 +261,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
             # 
             okrugs_df = pandas.read_sql_query(
-                "SELECT okrug_okato,MAX(okrug_name) as okrug_name, array_agg(adm_zid) as adm_zid FROM adm_zones GROUP BY okrug_okato;",
+                "SELECT okrug_okato,MAX(okrug_name) as okrug_name, array_agg(DISTINCT adm_zid) as adm_zid FROM adm_zones GROUP BY okrug_okato;",
                 con=engine
             )
             okrugs_df['index_pop'] = adms_df.apply(pop_index_mode_from_another_df_by_adm_zid, another_df=adms_df, axis=1)
@@ -268,5 +284,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
 
 if __name__ == "__main__":
-        workload_oracle(1,year=2021,to_database=True)
-        workload_oracle(2,year=2021,to_database=True)
+    for i in range(16):
+        print(i)
+        workload_oracle(1,year=(2021+i),to_database=True)
+        workload_oracle(2,year=(2021+i),to_database=True)

@@ -5,12 +5,8 @@ FROM python:3.9-bullseye
 WORKDIR /app
 
 COPY . .
-RUN apt update &&\
+RUN apt update && \
     apt install -y \
-    python3 \
-    python3-pip \
-    uwsgi-core \
-    uwsgi-plugin-python3 \
     pandoc \
     && pip3 install -r requirements.txt \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
