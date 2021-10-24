@@ -5,6 +5,10 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import InputLabel from "@mui/material/InputLabel";
+import FormControl from "@mui/material/FormControl";
 
 const style = {
   position: "absolute",
@@ -21,9 +25,16 @@ const style = {
 function SignUpPopup(props) {
   const { isOpen, handleClose } = props;
 
+  const [role, setRole] = useState("user");
+
+  const handleRoleChange = (event) => {
+    setRole(event.target.value);
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+
     fetch("/api/auth/signup", {
       method: "POST",
       headers: {
@@ -35,6 +46,7 @@ function SignUpPopup(props) {
         email: data.get("email"),
         first_name: data.get("first_name"),
         middle_name: data.get("middle_name"),
+        roles: [role],
       }),
     });
   };
@@ -92,6 +104,20 @@ function SignUpPopup(props) {
             label="Фамилия"
             id="middle_name"
           />
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel id="role-label">Роль</InputLabel>
+            <Select
+              labelId="role-label"
+              id="role"
+              name="role"
+              label="Роль"
+              value={role}
+              onChange={handleRoleChange}
+            >
+              <MenuItem value={"user"}>Пользователь</MenuItem>
+              <MenuItem value={"admin"}>Администратор</MenuItem>
+            </Select>
+          </FormControl>
           <Button
             type="submit"
             fullWidth

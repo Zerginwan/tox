@@ -10,8 +10,10 @@ import Container from "@mui/material/Container";
 
 import Logo from "../assets/logo.png";
 
-function SignInPage() {
+function SignInPage(props) {
   const history = useHistory();
+
+  const { setUserRole } = props;
 
   const [error, setError] = useState({});
 
@@ -33,6 +35,7 @@ function SignInPage() {
         if (result.accessToken) {
           localStorage.setItem("accessToken", result.accessToken);
           history.push("/");
+          setUserRole(result.roles[0]);
         } else {
           setError({
             show: true,

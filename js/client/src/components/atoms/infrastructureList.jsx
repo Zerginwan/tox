@@ -43,8 +43,6 @@ function InfrastructureList(props) {
     });
   };
 
-  console.log(open);
-
   return (
     <List
       sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
@@ -76,8 +74,8 @@ function InfrastructureList(props) {
             <List component="div" disablePadding>
               {visualProperties.objects
                 .filter((object) => object.object_category === x.id)
-                .map((item) => (
-                  <ListItemButton sx={{ pl: 4 }}>
+                .map((item, index) => (
+                  <ListItemButton key={index} sx={{ pl: 4 }}>
                     <ListItemIcon>
                       <StarBorder />
                     </ListItemIcon>

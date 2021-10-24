@@ -10,10 +10,18 @@ import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 
 function Menu(props) {
-  const { isOpen, toggleSidebar, selectLayer, visualProperties } = props;
+  const {
+    role,
+    isOpen,
+    toggleSidebar,
+    selectLayer,
+    visualProperties,
+    turnAddObjectMode,
+  } = props;
+
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Header isOpen={isOpen} toggleSidebar={toggleSidebar} />
+      <Header role={role} isOpen={isOpen} toggleSidebar={toggleSidebar} />
       <Drawer
         sx={{
           flexShrink: 0,
@@ -29,6 +37,7 @@ function Menu(props) {
         <Sidebar
           selectLayer={selectLayer}
           visualProperties={visualProperties}
+          turnAddObjectMode={turnAddObjectMode}
         />
       </Drawer>
     </Box>
