@@ -6,7 +6,7 @@ const path = require('path');
 
 const bcrypt = require("bcryptjs");
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 
@@ -33,14 +33,14 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}...`);
 })
 
-// function createInitialUser() {
-//   User.create({
-//     id: 0,
-//     login: 'admin',
-//     password: bcrypt.hashSync('admin', 8),
-//     role: 2,
-//   })
-// };
+function createInitialUser() {
+  User.create({
+    id: 0,
+    login: 'admin',
+    password: bcrypt.hashSync('admin', 8),
+    roles: ["ROLE_ADMIN"],
+  })
+};
 
 // function initial() {
 //   Role.create({

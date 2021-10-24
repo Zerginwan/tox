@@ -23,6 +23,12 @@ module.exports = function (app) {
   );
 
   app.get(
+    "/api/getData",
+    [authJwt.verifyToken],
+    controller.getData
+  );
+
+  app.get(
     "/api/visualProperties",
     [authJwt.verifyToken],
     controller.getVisualProperties
