@@ -29,10 +29,30 @@ exports.getVisualProperties = (req, res) => {
     try {
       const objectCategories = await pool.query('SELECT * FROM object_categories')
       const objects = await pool.query('SELECT * FROM objects');
+      const affinityIndexes = await pool.query('SELECT * FROM affinity_indexes');
 
       res.status(200).json({
         objectCategories: objectCategories.rows,
-        objects: objects.rows
+        objects: objects.rows,
+        affinityIndexes: affinityIndexes.rows
+      });
+    } catch (e) {
+      res.status(500).json('Ошибка получения данных');
+    }
+  })();
+}
+
+exports.getData = (req, res) => {
+  (async () => {
+    try {
+      const admZones = await pool.query('SELECT * FROM preset_2_2021_adm_zones')
+      const okrugs = await pool.query('SELECT * FROM preset_2_2021_okrugs');
+      const sectors = await pool.query('SELECT * FROM preset_2_2021_sectors')
+
+      res.status(200).json({
+        admZones: admZones.rows,
+        okrugs: okrugs.rows,
+        sectors: sectors.rows
       });
     } catch (e) {
       res.status(500).json('Ошибка получения данных');
