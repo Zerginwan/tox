@@ -39,9 +39,15 @@ engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{databa
 @app.route('/internal', methods=['GET','POST'])
 def internal():
     if request.method == 'GET':
-        return request.args.get('type')
+        type = request.args.get('type')
+        okato = request.args.get('okato')
+        answer = client.get(str(type + okato))
+        # full_default_answer = client.get(str(args))
+        # if answer is None:
+        #     answer = workload_oracle(*args)
+        return 'OK'
+
     if request.method == 'POST':
-        request.get_json(force=True)
         args = []
         args.append(request.json['object_type_id'])
         args.append(request.json['year'])
@@ -53,9 +59,8 @@ def internal():
 
         # rv = cache.get('my-item')
         # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
-        
-        data = request.get_json()
-        return data
+    
+        return answer
 
 
 if __name__ == '__main__':

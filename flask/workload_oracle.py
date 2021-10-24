@@ -13,8 +13,10 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
     '''
     from pandas.core.frame import DataFrame
-    import yaml, pandas
+    import yaml, pandas, numpy
     from sqlalchemy import create_engine, inspect
+    from collections import Counter
+
     # подключаем конфиг
     config = yaml.safe_load(open(".config.yml"))
     # создаем "подключение" к БД
@@ -87,7 +89,31 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
             if weight_dict[i]['min_treshhold'] >= row['weight']:
                 return pandas.Series(weight_dict[i]['id'])
     
+    # функция для определние среднего значения index_pop по округам и районам
+    def pop_index_mode_from_another_df_by_cell_zid(data,another_df: pandas.DataFrame):
+            filter = data['cell_zid']
+            if filter:
+                    if not isinstance(filter, (list)):
+                        filter =  [filter]
+            return Counter(list(another_df.query('cell_zid in @filter')['index_pop'])).most_common(1)[0][0]
+    def pop_index_mode_from_another_df_by_adm_zid(data,another_df: pandas.DataFrame):
+            filter = data['adm_zid']
+            if filter:
+                    if not isinstance(filter, (list)):
+                        filter =  [filter]
+            return Counter(list(another_df.query('adm_zid in @filter')['index_pop'])).most_common(1)[0][0]
+    #меняем полигоны на массив координат дял фронта
+    def reshape_polygon_to_list(data):
+        return numpy.array(data['geometry'])
     
+    def object_counter(data, another_df: pandas.DataFrame):
+            for l in data['cell_zid']:
+                if l:
+                    if not isinstance(l, (list)):
+                        l =  [l]
+                    return another_df.query('zid in @l')['zid'].count()
+
+
     # объявляем словарь для ответа
     answer = {"warnings": None, "errors": None}
     # формируем колонку населения
@@ -154,20 +180,32 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         objects_df.apply(add_weight, axis=1)
         # считаем индекс
         cells_df['index_pop'] = cells_df.apply(find_index_pop, axis=1)
+
+        # собираем отдельный объект по адм.районам
         adms_df = pandas.read_sql_query(
-            "SELECT adm_zid, MAX(adm_name), array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
+            "SELECT adm_zid, MAX(adm_name) as adm_name, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
 
             con=engine
         )
-        adms_df['index_pop'] = 0
         
+        # считаем индекс для районов
+        adms_df['index_pop'] =        adms_df.apply(pop_index_mode_from_another_df_by_cell_zid, another_df=cells_df, axis=1)
         
-        # adms_df = cells_df.groupby('adm_zid')['index_pop'].agg(pandas.Series.mode)
-        # cells_df['index_pop_okato'] = cells_df.groupby('okrug_okato',axis=0)['index_pop'].mode()
+        #собираем отдельный объект по округам
+        okrugs_df = pandas.read_sql_query(
+            "SELECT okrug_okato, MAX(okrug_name) as okrug_name, array_agg(adm_zid) as adm_zid, array_agg(adm_name) as adm_name, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY okrug_okato;",
+            con=engine
+        )
+        # считаем индекс для округов
+        okrugs_df['index_pop'] = okrugs_df.apply(pop_index_mode_from_another_df_by_adm_zid, another_df=adms_df, axis=1)
+
+        cells_df['geometry'] = cells_df.apply(reshape_polygon_to_list,axis=1)
         
         answer['data'] = {}
         answer['data'].update({"objects":objects_df.to_json(orient='records')})
         answer['data'].update({"sectors":cells_df.to_json(orient='records')})
+        answer['data'].update({"adm_zones":adms_df.to_json(orient='records')})
+        answer['data'].update({"okrugs":okrugs_df.to_json(orient='records')})
         return answer
     else:
         
@@ -178,154 +216,18 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         )
         adms_df['index_pop'] = 0
 
-        obj_list = objects_df['zid'].values.tolist()
-        adms_list = adms_df['cell_zid'].values.tolist()
-        # складываем списки списков в большой список
-        adms_cell_zid_list = sum(adms_list, [])
-        print(obj_list)
-        for i in obj_list:
-            if i in adms_cell_zid_list:
-                adms_df.query('@i in cell_zid')['index_pop'] = 1
+        adms_df['index_pop'] = adms_df.apply(object_counter, another_df=objects_df, axis=1)
 
+        # 
         okrugs_df = pandas.read_sql_query(
-            "SELECT okrug_okato, okrug_name, array_agg(adm_zid), array_agg(adm_name) FROM adm_zones GROUP BY okrug_okato;",
+            "SELECT okrug_okato,MAX(okrug_name) as okrug_name, array_agg(adm_zid) as adm_zid, array_agg(adm_name) as adm_name FROM adm_zones GROUP BY okrug_okato;",
             con=engine
         )
+        okrugs_df['index_pop'] = adms_df.apply(pop_index_mode_from_another_df_by_adm_zid, another_df=adms_df, axis=1)
+
+        
         answer['data'] = {}
         answer['data'].update({"objects":objects_df.to_json(orient='records')})
         answer['data'].update({"adm_zones":adms_df.to_json(orient='records')})
         return answer
         
-    
-
-
-   # # в дальнейшем строка цикла превращается в наличие объекта в списке, 
-    # # осторитрованного по требованиям к объекту:
-    # #    - требования по нахождению в районе;
-    # #    - требования по дистанции доступности и количеству населения, на покрытой территории
-    
-    # if object == 'mfc':
-        
-    # # здесь будет короткий цикл из двух тел на поиск номеров    
-        
-    # else object == 'polyclinic_child':
-    #     answer = {}    
-        
-    #     # если требований по секторам нет
-    #     if sector_id == 0:
-            
-    #         # перебираем значения в списке объектов
-    #         for id in object_id:
-            
-    #             # объявляем переменную для подсчета охваченного населения
-    #             total_pop = 0
-                
-    #             # определяем занятый объектом сектор
-    #             object_sector = object.query('index == id')['zid']
-                
-    #             # создаем переменную, которую заполняем номерами секторов покрытия
-    #             workload_range = moscow_fishnet.loc[moscow_fishnet['cell_zid'] == object_sector]['cross']
-            
-    #             # пробегаем по всем секторам, охваченным объектом, чтобы наполнить total_pop
-    #             for sector in workload_range:
-    #                 total_pop += int(pop_data[pop_filter])
-        
-    #             for object in objects_list:
-               
-    #                 # список секторов, охваченных объектом
-    #                 terr_list = []
-        
-    #                 # количество населения в охваченных секторах, для расчета норматива
-    #                 total_pop = 0
-              
-    #                 for terr in terr_list:
-    #                     total_pop += int(2021_CLocation.query('cell_zid == terr')['customers_cnt_home'])
-        
-    #                     # расчитываем соответствие фактического населения требованиям
-    #                     # требования к объектам хранятся в object_req и фильтруются по типу объекта
-    #                     # формируем требования по населению 
-        
-    #                     pop_req = object_req.query('type == @object')['pop']
-        
-    #                     # и соотношение фактического населения и требования
-        
-    #                     req_pop_filter = total_pop / pop_req
-        
-    #                     if req_pop_filter >= pop_req * 1.2:
-    #                         answer['score_of_object' + id] = 0
-    #                     elif req_pop_filter >= pop_req * 0.96:
-    #                         answer['score_of_object' + id] = 1
-    #                     elif req_pop_filter >= pop_req * 0.71:
-    #                         answer['score_of_object' + id] = 2
-    #                     elif req_pop_filter >= pop_req * 0.31:
-    #                         answer['score_of_object' + id] = 3
-    #                     else:
-    #                         answer['score_of_object' + id] = 4
-        
-    #     # если же список секторов не пуст    
-    #     else:
-    #         for id in sector_id:
-            
-    #             # определяем переменную для подсчета охваченного населения
-    #             total_pop = 0
-                
-    #             # находим объект, расположенный в секторе
-    #             object_sector = object.query('zid == id')['zid']
-    #             if object_sector is not None:
-    #                 # список секторов из ренджа    
-    #                 # TODO make_cross()
-    #                 workload_range = moscow_fishnet.loc[moscow_fishnet['cell_zid'] == object_sector]['cross']
-            
-    #                 # пробегаем по всем секторам, охваченным объектом, чтобы наполнить total_pop
-    #                 for sector in workload_range:
-    #                     total_pop += int(pop_data[pop_filter])
-        
-    #                 for object in objects_list:
-               
-    #                     # список секторов, охваченных объектом
-    #                     terr_list = []
-        
-    #                     # количество населения в охваченных секторах, для расчета норматива
-    #                     total_pop = 0
-              
-    #                     for terr in terr_list:
-    #                         total_pop += int(2021_CLocation.query('cell_zid == terr')['customers_cnt_home'])
-        
-    #                         # расчитываем соответствие фактического населения требованиям
-    #                         # требования к объектам хранятся в object_req и фильтруются по типу объекта
-    #                         # формируем требования по населению 
-        
-    #                         pop_req = object_req.query('type == @object')['pop']
-        
-    #                         # и соотношение фактического населения и требования
-        
-    #                         req_pop_filter = total_pop / pop_req
-        
-    #                         if req_pop_filter >= pop_req * 1.2:
-    #                             answer['score_of_object' + id] = 0
-    #                         elif req_pop_filter >= pop_req * 0.96:
-    #                             answer['score_of_object' + id] = 1
-    #                         elif req_pop_filter >= pop_req * 0.71:
-    #                             answer['score_of_object' + id] = 2
-    #                         elif req_pop_filter >= pop_req * 0.31:
-    #                             answer['score_of_object' + id] = 3
-    #                         else:
-    #                             answer['score_of_object' + id] = 4 
-                
-    #             # если в секторе нет объектов, дополняем ответ указанием номера пустого сектора
-                
-    #             except:
-    #                 answer['empty_sectors'].append(id)
-            
-    #         # возвращаем ответ    
-                   
-    #         return answer
-
-
-if __name__ == "__main__":
-    
-    start_time = time.monotonic()
-    
-    print(workload_oracle(object_type_id=1))
-    end_time = time.monotonic()
-    print(timedelta(seconds=end_time - start_time))
