@@ -18,6 +18,10 @@ require('./routes/user.routes')(app);
 
 app.use('/static', express.static('client/build/static'));
 
+router.get('/auth/login', function (req, res) {
+  res.sendFile(path.join(__dirname + '/client/build/index.html'));
+});
+
 router.get('/', function (req, res) {
   res.sendFile(path.join(__dirname + '/client/build/index.html'));
 });

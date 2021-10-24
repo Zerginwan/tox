@@ -70,6 +70,7 @@ function MapPage(props) {
       })
       .catch((error) => {
         console.log(error);
+        history.push('/auth/login')
       });
 
     const getVisualProperties = fetch("/api/visualProperties", {

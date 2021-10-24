@@ -23,7 +23,7 @@ import { aoJSON } from "../../geo/ao";
 import { moJSON } from "../../geo/mo.js";
 
 const getColor = (value) => {
-  var hue = ((6 - value) * 120).toString(10);
+  var hue = (value * 120).toString(10);
   return ["hsl(", hue, ",100%,50%)"].join("");
 };
 
