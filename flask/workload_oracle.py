@@ -161,6 +161,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         )
         adms_df['index_pop'] = 0
         
+        
         # adms_df = cells_df.groupby('adm_zid')['index_pop'].agg(pandas.Series.mode)
         # cells_df['index_pop_okato'] = cells_df.groupby('okrug_okato',axis=0)['index_pop'].mode()
         
