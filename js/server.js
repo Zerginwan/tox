@@ -31,20 +31,20 @@ app.use('/', router);
 const db = require('./models');
 
 db.sequelize.sync().then(() => {
+  // createInitialUser();
 });
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}...`);
 })
 
-function createInitialUser() {
-  User.create({
-    id: 0,
-    login: 'admin',
-    password: bcrypt.hashSync('admin', 8),
-    roles: ["ROLE_ADMIN"],
-  })
-};
+// function createInitialUser() {
+//   User.create({
+//     id: 0,
+//     login: 'admin',
+//     password: bcrypt.hashSync('admin', 8),
+//   })
+// };
 
 // function initial() {
 //   Role.create({

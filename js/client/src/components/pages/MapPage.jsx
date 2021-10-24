@@ -62,6 +62,9 @@ function MapPage(props) {
     })
       .then((res) => res.json())
       .then((result) => {
+        if (result.message === "Unauthorized!") {
+          history.push("/auth/login");
+        }
         setData({
           admZones: result.admZones,
           okrugs: result.okrugs,
@@ -70,7 +73,7 @@ function MapPage(props) {
       })
       .catch((error) => {
         console.log(error);
-        history.push('/auth/login')
+        history.push("/auth/login");
       });
 
     const getVisualProperties = fetch("/api/visualProperties", {
@@ -81,6 +84,12 @@ function MapPage(props) {
       .then((res) => res.json())
       .then((result) => {
         setVisualProperties(result);
+        if (result.message === "Unauthorized!") {
+          history.push("/auth/login");
+        } 
+      })
+      .catch((error) => {
+        history.push("/auth/login");
       });
 
     Promise.all([getData, getVisualProperties]).then(() => {
