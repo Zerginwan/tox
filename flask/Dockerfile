@@ -11,13 +11,6 @@ RUN apt update && \
     && pip3 install -r requirements.txt \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-EXPOSE 80 9191
+EXPOSE 80
 
-CMD ["uwsgi", \
-            "--http-socket", ":80", \
-#            "--threads", "2", \
-#            "--processes", "4" \
-            "--stats", "localhost:9191",\
-            "--plugin", "python3",\
-            "--wsgi-file", "app.py",\
-            "--callable", "app"]
+CMD ["python", "app.py"]
