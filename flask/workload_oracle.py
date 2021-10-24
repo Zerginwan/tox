@@ -141,10 +141,9 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
                 s.center_lon as center_lon,
                 s.center_lat as center_lat,
                 array_agg(a.adm_zid) as adm_zid,
-                array_agg(a.area_peresechenia_s_admzone_kv_km) as area_peresechenia_s_admzone_kv_km,
+                array_agg(a.adm_okato) as adm_okato,
                 array_agg(a.adm_name) as adm_name,
                 array_agg(a.okrug_name) as okrug_name,
-                array_agg(a.sub_ter) as sub_ter,
                 array_agg(a.okrug_okato) as okrug_okato,
                 CASE
                     WHEN %s > 0 THEN %s
@@ -183,7 +182,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
         # собираем отдельный объект по адм.районам
         adms_df = pandas.read_sql_query(
-            "SELECT adm_zid, MAX(adm_name) as adm_name, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
+            "SELECT adm_zid, MAX(adm_name) as adm_name, MAX(adm_oakto) as adm_okato, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
 
             con=engine
         )
@@ -193,7 +192,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         
         #собираем отдельный объект по округам
         okrugs_df = pandas.read_sql_query(
-            "SELECT okrug_okato, MAX(okrug_name) as okrug_name, array_agg(adm_zid) as adm_zid, array_agg(adm_name) as adm_name, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY okrug_okato;",
+            "SELECT okrug_okato, MAX(okrug_name) as okrug_name, array_agg(adm_zid) as adm_zid, array_agg(adm_name) as adm_name, array_agg(adm_okato) as adm_okato, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY okrug_okato;",
             con=engine
         )
         # считаем индекс для округов
@@ -210,7 +209,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
     else:
         
         adms_df = pandas.read_sql_query(
-            "SELECT adm_zid, MAX(adm_name), array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
+            "SELECT adm_zid, MAX(adm_name), MAX(adm_okato) as adm_okato, array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
 
             con=engine
         )
@@ -220,7 +219,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
         # 
         okrugs_df = pandas.read_sql_query(
-            "SELECT okrug_okato,MAX(okrug_name) as okrug_name, array_agg(adm_zid) as adm_zid, array_agg(adm_name) as adm_name FROM adm_zones GROUP BY okrug_okato;",
+            "SELECT okrug_okato,MAX(okrug_name) as okrug_name, array_agg(adm_zid) as adm_zid FROM adm_zones GROUP BY okrug_okato;",
             con=engine
         )
         okrugs_df['index_pop'] = adms_df.apply(pop_index_mode_from_another_df_by_adm_zid, another_df=adms_df, axis=1)
