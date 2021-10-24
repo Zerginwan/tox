@@ -154,6 +154,13 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         objects_df.apply(add_weight, axis=1)
         # считаем индекс
         cells_df['index_pop'] = cells_df.apply(find_index_pop, axis=1)
+        adms_df = pandas.read_sql_query(
+            "SELECT adm_zid, MAX(adm_name), array_agg(cell_zid) as cell_zid FROM adm_zones GROUP BY adm_zid;",
+
+            con=engine
+        )
+        adms_df['index_pop'] = 0
+        
         # adms_df = cells_df.groupby('adm_zid')['index_pop'].agg(pandas.Series.mode)
         # cells_df['index_pop_okato'] = cells_df.groupby('okrug_okato',axis=0)['index_pop'].mode()
         
@@ -168,6 +175,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
 
             con=engine
         )
+        adms_df['index_pop'] = 0
 
         obj_list = objects_df['zid'].values.tolist()
         adms_list = adms_df['cell_zid'].values.tolist()
@@ -176,10 +184,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, addition_objects:list
         print(obj_list)
         for i in obj_list:
             if i in adms_cell_zid_list:
-                adms_df = adms_df[['@i in cell_zid'], 'index_pop'].append(1)
-
-        adms_df = adms_df[['index_pop < 1'],'index_pop'].append(0)
-        
+                adms_df.query('@i in cell_zid')['index_pop'] = 1
 
         okrugs_df = pandas.read_sql_query(
             "SELECT okrug_okato, okrug_name, array_agg(adm_zid), array_agg(adm_name) FROM adm_zones GROUP BY okrug_okato;",
