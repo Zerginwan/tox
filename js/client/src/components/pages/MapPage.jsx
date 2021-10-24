@@ -30,7 +30,9 @@ const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
   })
 );
 
-function MapPage() {
+function MapPage(props) {
+  const { role } = props;
+
   const [data, setData] = useState(null);
   const [visualProperties, setVisualProperties] = useState(null);
 
@@ -43,6 +45,8 @@ function MapPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState(0);
 
+  const [addObjectMode, setAddObjectMode] = useState(false);
+
   const history = useHistory();
 
   useEffect(() => {
@@ -51,21 +55,21 @@ function MapPage() {
       isLoading: true,
     }));
 
-    const getData = fetch("/api/sectors", {
+    const getData = fetch("api/getData", {
       headers: {
         "x-access-token": localStorage.getItem("accessToken"),
       },
     })
       .then((res) => res.json())
       .then((result) => {
-        setData((prevState) => ({
-          ...prevState,
-          sectors: result,
-        }));
+        setData({
+          admZones: result.admZones,
+          okrugs: result.okrugs,
+          sectors: result.sectors,
+        });
       })
       .catch((error) => {
         console.log(error);
-        history.push("/auth/login");
       });
 
     const getVisualProperties = fetch("/api/visualProperties", {
@@ -95,6 +99,14 @@ function MapPage() {
     setSelectedLayer(value);
   };
 
+  const turnAddObjectMode = () => {
+    setAddObjectMode(true);
+  };
+
+  const turnOffAddObjectMode = () => {
+    setAddObjectMode(false);
+  };
+
   const render = () => {
     if (status.isLoading) {
       return (
@@ -114,14 +126,22 @@ function MapPage() {
       return (
         <Box sx={{ display: "flex" }}>
           <Menu
+            role={role}
             isOpen={isSidebarOpen}
             toggleSidebar={toggleSidebar}
             selectLayer={selectLayer}
             visualProperties={visualProperties}
+            turnAddObjectMode={turnAddObjectMode}
           />
           <Main open={isSidebarOpen}>
             <DrawerHeader />
-            <ToxMap selectedLayer={selectedLayer} data={data} />
+            <ToxMap
+              selectedLayer={selectedLayer}
+              data={data}
+              addObjectMode={addObjectMode}
+              visualProperties={visualProperties}
+              turnOffAddObjectMode={turnOffAddObjectMode}
+            />
           </Main>
         </Box>
       );

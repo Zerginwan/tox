@@ -1,9 +1,12 @@
+import { Link } from "react-router-dom";
+
 import { styled, useTheme } from "@mui/material/styles";
+import IconButton from "@mui/material/IconButton";
 import MuiAppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
 
 const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== "open",
@@ -24,7 +27,7 @@ const AppBar = styled(MuiAppBar, {
 }));
 
 function Header(props) {
-  const { isOpen, toggleSidebar } = props;
+  const { isOpen, toggleSidebar, role } = props;
 
   return (
     <AppBar position="fixed" open={isOpen}>
@@ -46,6 +49,17 @@ function Header(props) {
         >
           Меню
         </Typography>
+        {role === "ROLE_ADMIN" ? (
+          <IconButton>
+            <Link to="/admin">
+              <SupervisorAccountIcon
+                sx={{
+                  color: "white",
+                }}
+              />
+            </Link>
+          </IconButton>
+        ) : null}
       </Toolbar>
     </AppBar>
   );

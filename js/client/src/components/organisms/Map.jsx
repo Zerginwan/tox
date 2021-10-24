@@ -5,10 +5,12 @@ import {
   TileLayer,
   useMapEvent,
   Marker,
+  Polygon,
   Popup,
   GeoJSON,
   LayersControl,
   Rectangle,
+  LayerGroup,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -19,6 +21,11 @@ import AddObjectForm from "../molecules/AddObjectForm";
 
 import { aoJSON } from "../../geo/ao";
 import { moJSON } from "../../geo/mo.js";
+
+const getColor = (value) => {
+  var hue = ((6 - value) * 120).toString(10);
+  return ["hsl(", hue, ",100%,50%)"].join("");
+};
 
 const ClickHandler = (props) => {
   const { addObject } = props;
@@ -49,21 +56,37 @@ const ClickHandler = (props) => {
 };
 
 const ToxMap = (props) => {
-  const { selectedLayer, data, visualProperties } = props;
+  const {
+    selectedLayer,
+    data,
+    visualProperties,
+    addObjectMode,
+    turnOffAddObjectMode,
+  } = props;
+
+  console.log(data);
 
   const [myObjects, setMyObjects] = useState([]);
+  const [objectProp, setObjectProp] = useState({
+    name: "",
+    position: null,
+  });
 
   const addObject = (newObject) => {
     setMyObjects((prevState) => [...prevState, newObject]);
+    turnOffAddObjectMode();
   };
 
   return (
     <MapContainer
       center={[55.751244, 37.618423]}
       zoom={10}
-      style={{ height: "100%", width: "100%" }}
+      style={{
+        height: "100%",
+        width: "100%",
+      }}
     >
-      {/* <ClickHandler addObject={addObject} /> */}
+      {addObjectMode ? <ClickHandler addObject={addObject} /> : null}
       <TileLayer
         attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -73,26 +96,109 @@ const ToxMap = (props) => {
           checked={selectedLayer === 0}
           name="Административные округа"
         >
-          <GeoJSON data={aoJSON}></GeoJSON>
-          {myObjects.map((object, index) => {
-            return (
-              <Marker key={index} position={object.position} icon={iconPerson}>
-                <ObjectInfoPopup object={object} />
-              </Marker>
-            );
-          })}
+          <LayerGroup>
+            {aoJSON.features.map((x, index) => {
+              return (
+                <GeoJSON
+                  eventHandlers={{
+                    click: (e) => {
+                      setObjectProp({
+                        name: x.properties.NAME,
+                        position: e.latlng,
+                      });
+                    },
+                  }}
+                  key={index}
+                  style={{
+                    color: getColor(
+                      data.okrugs.find(
+                        (okrug) => okrug.okrug_okato === x.properties.OKATO
+                      ).index_pop
+                    ),
+                  }}
+                  data={{
+                    features: [x],
+                  }}
+                ></GeoJSON>
+              );
+            })}
+            {myObjects.map((object, index) => {
+              return (
+                <Marker
+                  key={index}
+                  position={object.position}
+                  icon={iconPerson}
+                >
+                  <ObjectInfoPopup object={object} />
+                </Marker>
+              );
+            })}
+            {objectProp.name ? (
+              <Popup position={objectProp.position}>{objectProp.name}</Popup>
+            ) : null}
+          </LayerGroup>
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer checked={selectedLayer === 1} name="Районы">
-          <GeoJSON data={moJSON}></GeoJSON>
+          <LayerGroup>
+            {moJSON.features.map((x, index) => {
+              return (
+                <GeoJSON
+                  eventHandlers={{
+                    click: (e) => {
+                      setObjectProp({
+                        name: x.properties.NAME,
+                        position: e.latlng,
+                      });
+                    },
+                  }}
+                  key={index}
+                  data={{
+                    features: [x],
+                  }}
+                  style={{
+                    color: getColor(3),
+                  }}
+                ></GeoJSON>
+              );
+            })}
+            {myObjects.map((object, index) => {
+              return (
+                <Marker
+                  key={index}
+                  position={object.position}
+                  icon={iconPerson}
+                >
+                  <ObjectInfoPopup object={object} />
+                </Marker>
+              );
+            })}
+          </LayerGroup>
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer checked={selectedLayer === 2} name="Сектора">
-          <Rectangle
-            pathOptions={{ color: "red", weight: 1 }}
-            bounds={[
-              [55.71956889186813, 36.99480218696067],
-              [55.72409266871701, 37.00270216166176],
-            ]}
-          />
+          <LayerGroup>
+            {selectedLayer === 2
+              ? data.sectors.map((x, index) => (
+                  <Polygon
+                    key={index}
+                    positions={JSON.parse(x.geometry)}
+                    pathOptions={{
+                      color: getColor(x.index_pop),
+                    }}
+                  />
+                ))
+              : null}
+            {myObjects.map((object, index) => {
+              return (
+                <Marker
+                  key={index}
+                  position={object.position}
+                  icon={iconPerson}
+                >
+                  <ObjectInfoPopup object={object} />
+                </Marker>
+              );
+            })}
+          </LayerGroup>
         </LayersControl.BaseLayer>
       </LayersControl>
     </MapContainer>

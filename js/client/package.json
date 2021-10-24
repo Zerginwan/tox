@@ -31,8 +31,6 @@
     "not dead",
     "not op_mini all"
   ],
-  "devDependencies": {
-    "ra-data-fakerest": "^3.19.0"
-  },
+  "devDependencies": {},
   "proxy": "http://localhost:3001"
 }

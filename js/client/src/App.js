@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import AdminPage from './components/pages/AdminPage';
 import MapPage from './components/pages/MapPage';
 import SignInPage from './components/pages/SignInPage';
@@ -29,20 +31,27 @@ const theme = createTheme({
     }
   }
 });
+
 function App() {
+  const [role, setRole] = useState('');
+
+  const setUserRole = (role) => {
+    setRole(role)
+  };
+
   return (
     <div className="App">
       <ThemeProvider theme={theme}>
         <Router>
           <Switch>
             <Route path="/auth/login">
-              <SignInPage />
+              <SignInPage setUserRole={setUserRole} />
             </Route>
             <Route path="/admin">
               <AdminPage />
             </Route>
             <Route path="/">
-              <MapPage />
+              <MapPage role={role} />
             </Route>
           </ Switch>
         </Router>
