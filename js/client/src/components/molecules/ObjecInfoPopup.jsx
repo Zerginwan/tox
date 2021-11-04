@@ -10,29 +10,18 @@ function ObjectInfoPopup(props) {
     <Popup>
       <Box sx={{ minWidth: 240, padding: "12px" }}>
         <Typography
-          variant="caption"
+          variant="body1"
           sx={{ fontWeight: 900 }}
           gutterBottom
           component="div"
         >
           Тип объекта:
         </Typography>
-        <Typography variant="body2" gutterBottom component="div">
-          {object.type}
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{ fontWeight: 900 }}
-          gutterBottom
-          component="div"
-        >
-          Название объекта:
-        </Typography>
-        <Typography variant="body2" gutterBottom component="div">
+        <Typography variant="body2" gutterBottom component="div" sx={{ mb: 2 }}>
           {object.name}
         </Typography>
         <Typography
-          variant="caption"
+          variant="body1"
           sx={{ fontWeight: 900 }}
           gutterBottom
           component="div"

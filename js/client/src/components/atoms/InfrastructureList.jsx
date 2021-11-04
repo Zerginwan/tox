@@ -9,9 +9,8 @@ import Collapse from "@mui/material/Collapse";
 import SchoolIcon from "@mui/icons-material/School";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
 import BusinessIcon from "@mui/icons-material/Business";
-import ExpandLess from "@mui/icons-material/ExpandLess";
-import ExpandMore from "@mui/icons-material/ExpandMore";
 import StarBorder from "@mui/icons-material/StarBorder";
+import StarIcon from "@mui/icons-material/Star";
 import { styled } from "@mui/material/styles";
 
 const ListItemIcon = styled(ListItemIconMui)(({ theme }) => ({
@@ -25,12 +24,12 @@ const listItemIcons = {
 };
 
 function InfrastructureList(props) {
-  const { visualProperties } = props;
+  const { visualProperties, selectedInfType, selectInfType } = props;
 
   const [open, setOpen] = useState(
     visualProperties.objectCategories.map((x) => ({
       id: x.id,
-      isOpen: false,
+      isOpen: x.id === selectedInfType.objectCategory,
     }))
   );
 
@@ -40,6 +39,13 @@ function InfrastructureList(props) {
       return newState.map((x) =>
         x.id === id ? { ...x, isOpen: !x.isOpen } : x
       );
+    });
+  };
+
+  const handleObjectClick = (objectCategory, objectId) => {
+    selectInfType({
+      objectCategory: objectCategory,
+      objectId: objectId,
     });
   };
 
@@ -75,9 +81,21 @@ function InfrastructureList(props) {
               {visualProperties.objects
                 .filter((object) => object.object_category === x.id)
                 .map((item, index) => (
-                  <ListItemButton key={index} sx={{ pl: 4 }}>
+                  <ListItemButton
+                    key={index}
+                    sx={{
+                      pl: 4,
+                    }}
+                    onClick={() => {
+                      handleObjectClick(item.object_category, item.id);
+                    }}
+                  >
                     <ListItemIcon>
-                      <StarBorder />
+                      {selectedInfType.objectId === item.id ? (
+                        <StarIcon />
+                      ) : (
+                        <StarBorder />
+                      )}
                     </ListItemIcon>
                     <ListItemText primary={item.display} />
                   </ListItemButton>

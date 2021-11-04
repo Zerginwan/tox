@@ -12,9 +12,7 @@ module.exports = function (app) {
 
   app.post(
     "/api/auth/signup",
-    [
-      verifySignUp.checkRolesExisted
-    ],
+    [verifySignUp.checkRolesExisted],
     controller.signup
   );
 

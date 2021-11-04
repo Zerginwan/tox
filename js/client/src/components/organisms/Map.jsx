@@ -1,4 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+
+import Legend from "../molecules/Legend";
+import YearPicker from "../molecules/YearPicker";
+
+import getColor from "../../lib/GetColor";
 
 import {
   MapContainer,
@@ -9,8 +14,10 @@ import {
   Popup,
   GeoJSON,
   LayersControl,
-  Rectangle,
+  Circle,
+  FeatureGroup,
   LayerGroup,
+  CircleMarker,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -22,13 +29,8 @@ import AddObjectForm from "../molecules/AddObjectForm";
 import { aoJSON } from "../../geo/ao";
 import { moJSON } from "../../geo/mo.js";
 
-const getColor = (value) => {
-  var hue = (value * 60).toString(10);
-  return ["hsl(", hue, ",100%,50%)"].join("");
-};
-
 const ClickHandler = (props) => {
-  const { addObject } = props;
+  const { addObject, selectedInfType, visualProperties } = props;
   const popupRef = useRef(null);
 
   const [popupPosition, setPopupPosition] = useState(null);
@@ -46,8 +48,10 @@ const ClickHandler = (props) => {
       <Popup ref={popupRef} position={popupPosition}>
         <AddObjectForm
           latLang={popupPosition}
+          selectedInfType={selectedInfType}
           addObject={addObject}
           onClose={closePopup}
+          visualProperties={visualProperties}
         />
       </Popup>
     );
@@ -58,13 +62,13 @@ const ClickHandler = (props) => {
 const ToxMap = (props) => {
   const {
     selectedLayer,
+    selectedInfType,
     data,
     visualProperties,
     addObjectMode,
+    objectMode,
     turnOffAddObjectMode,
   } = props;
-
-  console.log(data);
 
   const [myObjects, setMyObjects] = useState([]);
   const [objectProp, setObjectProp] = useState({
@@ -77,6 +81,90 @@ const ToxMap = (props) => {
     turnOffAddObjectMode();
   };
 
+  const objects = useMemo(() => {
+    return myObjects
+      .filter((x) => x.type === selectedInfType.objectId)
+      .map((object, index) => {
+        return object.type === 2 ? (
+          <Circle
+            key={index}
+            center={object.position}
+            radius={object.range}
+            pathOptions={{
+              color: "blue",
+              opacity: 1,
+            }}
+          >
+            <Circle
+              key={index}
+              center={object.position}
+              radius={100}
+              pathOptions={{
+                opacity: 0.5,
+                color: "blue",
+                fillOpacity: 0.5,
+              }}
+            />
+            <ObjectInfoPopup object={object} />
+          </Circle>
+        ) : (
+          <Circle
+            key={index}
+            center={object.position}
+            radius={100}
+            pathOptions={{
+              opacity: 0.5,
+              color: "blue",
+              fillOpacity: 0.5,
+            }}
+          >
+            <ObjectInfoPopup object={object} />
+          </Circle>
+        );
+      });
+  }, [selectedInfType, myObjects]);
+
+  const polyclinic_child = useMemo(() => {
+    return data.objects.polyclinic_child.map((object, index) => (
+      <Circle
+        key={index}
+        center={[object.coorY, object.coorX]}
+        radius={1000}
+        pathOptions={{
+          color: "green",
+          opacity: 0.4,
+          fillOpacity: 0.2,
+        }}
+      >
+        <Circle
+          key={index}
+          center={[object.coorY, object.coorX]}
+          radius={100}
+          pathOptions={{
+            opacity: 0.5,
+            color: "green",
+            fillOpacity: 0.5,
+          }}
+        />
+      </Circle>
+    ));
+  }, [data.objects.polyclinic_child.length]);
+
+  const mfc = useMemo(() => {
+    return data.objects.mfc.map((object, index) => (
+      <Circle
+        key={index}
+        center={[object.coorY, object.coorX]}
+        radius={100}
+        pathOptions={{
+          opacity: 0.5,
+          color: "green",
+          fillOpacity: 0.5,
+        }}
+      />
+    ));
+  }, [data.objects.polyclinic_child.length]);
+
   return (
     <MapContainer
       center={[55.751244, 37.618423]}
@@ -86,7 +174,13 @@ const ToxMap = (props) => {
         width: "100%",
       }}
     >
-      {addObjectMode ? <ClickHandler addObject={addObject} /> : null}
+      {addObjectMode ? (
+        <ClickHandler
+          addObject={addObject}
+          selectedInfType={selectedInfType}
+          visualProperties={visualProperties}
+        />
+      ) : null}
       <TileLayer
         attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -111,9 +205,11 @@ const ToxMap = (props) => {
                   key={index}
                   style={{
                     color: getColor(
-                      data.okrugs.find(
-                        (okrug) => okrug.okrug_okato === x.properties.OKATO
-                      ).index_pop
+                      Number(
+                        data.okrugs.find(
+                          (okrug) => okrug.okrug_okato === x.properties.OKATO
+                        ).index_pop
+                      )
                     ),
                   }}
                   data={{
@@ -122,20 +218,6 @@ const ToxMap = (props) => {
                 ></GeoJSON>
               );
             })}
-            {myObjects.map((object, index) => {
-              return (
-                <Marker
-                  key={index}
-                  position={object.position}
-                  icon={iconPerson}
-                >
-                  <ObjectInfoPopup object={object} />
-                </Marker>
-              );
-            })}
-            {objectProp.name ? (
-              <Popup position={objectProp.position}>{objectProp.name}</Popup>
-            ) : null}
           </LayerGroup>
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer checked={selectedLayer === 1} name="Районы">
@@ -156,51 +238,47 @@ const ToxMap = (props) => {
                     features: [x],
                   }}
                   style={{
-                    color: getColor(3),
+                    color: getColor(
+                      Number(
+                        data.admZones.find(
+                          (admZones) =>
+                            admZones.adm_okato === x.properties.OKATO
+                        )?.index_pop
+                      )
+                    ),
                   }}
                 ></GeoJSON>
-              );
-            })}
-            {myObjects.map((object, index) => {
-              return (
-                <Marker
-                  key={index}
-                  position={object.position}
-                  icon={iconPerson}
-                >
-                  <ObjectInfoPopup object={object} />
-                </Marker>
               );
             })}
           </LayerGroup>
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer checked={selectedLayer === 2} name="Сектора">
           <LayerGroup>
-            {selectedLayer === 2
+            {selectedLayer === 2 && selectedInfType.objectId !== 1
               ? data.sectors.map((x, index) => (
                   <Polygon
                     key={index}
                     positions={JSON.parse(x.geometry)}
                     pathOptions={{
-                      color: getColor(x.index_pop),
+                      color: getColor(Number(x.index_pop), x.cell_zid),
                     }}
                   />
                 ))
               : null}
-            {myObjects.map((object, index) => {
-              return (
-                <Marker
-                  key={index}
-                  position={object.position}
-                  icon={iconPerson}
-                >
-                  <ObjectInfoPopup object={object} />
-                </Marker>
-              );
-            })}
           </LayerGroup>
         </LayersControl.BaseLayer>
+        <LayersControl.Overlay name="Объекты" checked={objectMode}>
+          <FeatureGroup>
+            {objects}
+            {selectedInfType.objectId === 2 ? polyclinic_child : mfc}
+          </FeatureGroup>
+        </LayersControl.Overlay>
       </LayersControl>
+      {objectProp.name ? (
+        <Popup position={objectProp.position}>{objectProp.name}</Popup>
+      ) : null}
+      <Legend indexes={visualProperties.affinityIndexes} />
+      {/* <YearPicker /> */}
     </MapContainer>
   );
 };

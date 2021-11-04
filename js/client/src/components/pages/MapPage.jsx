@@ -3,12 +3,13 @@ import { useHistory } from "react-router-dom";
 
 import DrawerHeader from "../atoms/DrawerHeader";
 
+import YearPicker from "../molecules/YearPicker";
+
 import ToxMap from "../organisms/Map";
 import Menu from "../organisms/Menu";
 
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
 import { styled } from "@mui/material/styles";
 
 const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
@@ -43,23 +44,34 @@ function MapPage(props) {
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedLayer, setSelectedLayer] = useState(0);
+  const [isYearSelectorOpen, setIsYearSelectorOpen] = useState(false);
 
+  const [selectedLayer, setSelectedLayer] = useState(0);
+  const [selectedYear, setSelectedYear] = useState(2021);
+  const [selectedInfType, setSelectedInfType] = useState({
+    objectCategory: 1,
+    objectId: 2,
+  });
   const [addObjectMode, setAddObjectMode] = useState(false);
+  const [objectMode, setObjectMode] = useState(false);
 
   const history = useHistory();
 
   useEffect(() => {
     setStatus((prevState) => ({
       ...prevState,
+      isLoaded: false,
       isLoading: true,
     }));
 
-    const getData = fetch("api/getData", {
-      headers: {
-        "x-access-token": localStorage.getItem("accessToken"),
-      },
-    })
+    const getData = fetch(
+      `api/getData?objectType=${selectedInfType.objectId}&year=${selectedYear}`,
+      {
+        headers: {
+          "x-access-token": localStorage.getItem("accessToken"),
+        },
+      }
+    )
       .then((res) => res.json())
       .then((result) => {
         if (result.message === "Unauthorized!") {
@@ -69,6 +81,7 @@ function MapPage(props) {
           admZones: result.admZones,
           okrugs: result.okrugs,
           sectors: result.sectors,
+          objects: result.objects,
         });
       })
       .catch((error) => {
@@ -86,7 +99,7 @@ function MapPage(props) {
         setVisualProperties(result);
         if (result.message === "Unauthorized!") {
           history.push("/auth/login");
-        } 
+        }
       })
       .catch((error) => {
         history.push("/auth/login");
@@ -99,7 +112,9 @@ function MapPage(props) {
         isLoaded: true,
       }));
     });
-  }, []);
+  }, [selectedYear, selectedInfType.objectId]);
+
+  const addObject = (objectData) => {};
 
   const toggleSidebar = () => {
     setIsSidebarOpen((s) => !s);
@@ -109,12 +124,33 @@ function MapPage(props) {
     setSelectedLayer(value);
   };
 
+  const selectInfType = (newState) => {
+    setSelectedInfType(newState);
+  };
+
   const turnAddObjectMode = () => {
     setAddObjectMode(true);
+    setObjectMode(true);
   };
 
   const turnOffAddObjectMode = () => {
     setAddObjectMode(false);
+  };
+
+  const turnOnObjectMode = () => {
+    setObjectMode(true);
+  };
+
+  const turnOffObjectMode = () => {
+    setObjectMode(false);
+  };
+
+  const selectYear = (value) => {
+    setSelectedYear(value);
+  };
+
+  const toggleYearSelectorOpen = () => {
+    setIsYearSelectorOpen((s) => !s);
   };
 
   const render = () => {
@@ -140,15 +176,34 @@ function MapPage(props) {
             isOpen={isSidebarOpen}
             toggleSidebar={toggleSidebar}
             selectLayer={selectLayer}
+            selectedInfType={selectedInfType}
+            selectInfType={selectInfType}
             visualProperties={visualProperties}
+            addObjectMode={addObjectMode}
             turnAddObjectMode={turnAddObjectMode}
+            turnOffAddObjectMode={turnOffAddObjectMode}
+            objectMode={objectMode}
+            turnOnObjectMode={turnOnObjectMode}
+            turnOffObjectMode={turnOffObjectMode}
+            isYearSelectorOpen={isYearSelectorOpen}
+            toggleYearSelectorOpen={toggleYearSelectorOpen}
           />
           <Main open={isSidebarOpen}>
             <DrawerHeader />
+            {isYearSelectorOpen ? (
+              <YearPicker
+                year={selectedYear}
+                isSidebarOpen={isSidebarOpen}
+                selectYear={selectYear}
+                toggleYearSelectorOpen={toggleYearSelectorOpen}
+              />
+            ) : null}
             <ToxMap
+              selectedInfType={selectedInfType}
               selectedLayer={selectedLayer}
               data={data}
               addObjectMode={addObjectMode}
+              objectMode={objectMode}
               visualProperties={visualProperties}
               turnOffAddObjectMode={turnOffAddObjectMode}
             />
