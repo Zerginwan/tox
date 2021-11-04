@@ -23,7 +23,7 @@ numpy == 1.19.5
 # C:\Users\Zergi\Documents\Code\tox\flask\get_doc.py: 16,17
 # C:\Users\Zergi\Documents\Code\tox\flask\get_sectors.py: 10,11
 # C:\Users\Zergi\Documents\Code\tox\flask\workload_oracle.py: 2,3,4,23,24
-pandas == 1.0.5
+pandas == 1.3.4
 
 # C:\Users\Zergi\Documents\Code\tox\flask\app.py: 3,4,5
 pymemcache == 3.5.0
