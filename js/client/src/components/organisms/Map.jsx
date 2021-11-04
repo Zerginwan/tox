@@ -163,7 +163,7 @@ const ToxMap = (props) => {
         }}
       />
     ));
-  }, [data.objects.polyclinic_child.length]);
+  }, [data.objects.mfc.length]);
 
   return (
     <MapContainer
@@ -204,13 +204,13 @@ const ToxMap = (props) => {
                   }}
                   key={index}
                   style={{
-                    color: getColor(
-                      Number(
+                    color: visualProperties.affinityIndexes.find(
+                      (item) =>
+                        item.id ==
                         data.okrugs.find(
                           (okrug) => okrug.okrug_okato === x.properties.OKATO
-                        ).index_pop
-                      )
-                    ),
+                        )?.index_pop
+                    ).color,
                   }}
                   data={{
                     features: [x],
@@ -238,14 +238,14 @@ const ToxMap = (props) => {
                     features: [x],
                   }}
                   style={{
-                    color: getColor(
-                      Number(
+                    color: visualProperties.affinityIndexes.find(
+                      (item) =>
+                        item.id ==
                         data.admZones.find(
                           (admZones) =>
                             admZones.adm_okato === x.properties.OKATO
                         )?.index_pop
-                      )
-                    ),
+                    ).color,
                   }}
                 ></GeoJSON>
               );
@@ -260,9 +260,20 @@ const ToxMap = (props) => {
                     key={index}
                     positions={JSON.parse(x.geometry)}
                     pathOptions={{
-                      color: getColor(Number(x.index_pop), x.cell_zid),
+                      color: visualProperties.affinityIndexes.find(
+                        (item) => item.id == x.index_pop
+                      )?.color,
                     }}
-                  />
+                  >
+                    <Popup>
+                      <p>
+                        <b>Учитываемое население:</b> {x.population}
+                      </p>
+                      <p>
+                        <b>Процент выполнения норматива:</b> {x.weight * 100}%
+                      </p>
+                    </Popup>
+                  </Polygon>
                 ))
               : null}
           </LayerGroup>

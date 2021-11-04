@@ -53,7 +53,7 @@ function MapPage(props) {
     objectId: 2,
   });
   const [addObjectMode, setAddObjectMode] = useState(false);
-  const [objectMode, setObjectMode] = useState(false);
+  const [objectMode, setObjectMode] = useState(true);
 
   const history = useHistory();
 
