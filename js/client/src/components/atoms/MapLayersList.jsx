@@ -16,7 +16,7 @@ const ListItemIcon = styled(ListItemIconMui)(({ theme }) => ({
 
 function MapLayersList(props) {
   const [open, setOpen] = useState(true);
-  const { selectLayer } = props;
+  const { selectLayer, selectedInfType } = props;
 
   return (
     <List
@@ -41,12 +41,14 @@ function MapLayersList(props) {
         </ListItemIcon>
         <ListItemText primary="Районы" />
       </ListItemButton>
-      <ListItemButton onClick={() => selectLayer(2)}>
-        <ListItemIcon>
-          <ViewModuleIcon />
-        </ListItemIcon>
-        <ListItemText primary="Сектора" />
-      </ListItemButton>
+      {selectedInfType.objectId !== 1 ? (
+        <ListItemButton onClick={() => selectLayer(2)}>
+          <ListItemIcon>
+            <ViewModuleIcon />
+          </ListItemIcon>
+          <ListItemText primary="Сектора" />
+        </ListItemButton>
+      ) : null}
     </List>
   );
 }

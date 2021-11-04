@@ -15,8 +15,17 @@ function Menu(props) {
     isOpen,
     toggleSidebar,
     selectLayer,
+    selectedInfType,
+    selectInfType,
     visualProperties,
+    objectMode,
+    turnOnObjectMode,
+    turnOffObjectMode,
+    addObjectMode,
+    turnOffAddObjectMode,
     turnAddObjectMode,
+    isYearSelectorOpen,
+    toggleYearSelectorOpen,
   } = props;
 
   return (
@@ -36,8 +45,17 @@ function Menu(props) {
       >
         <Sidebar
           selectLayer={selectLayer}
+          selectInfType={selectInfType}
+          selectedInfType={selectedInfType}
           visualProperties={visualProperties}
+          addObjectMode={addObjectMode}
           turnAddObjectMode={turnAddObjectMode}
+          turnOffAddObjectMode={turnOffAddObjectMode}
+          objectMode={objectMode}
+          turnOnObjectMode={turnOnObjectMode}
+          turnOffObjectMode={turnOffObjectMode}
+          isYearSelectorOpen={isYearSelectorOpen}
+          toggleYearSelectorOpen={toggleYearSelectorOpen}
         />
       </Drawer>
     </Box>
