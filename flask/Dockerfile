@@ -9,6 +9,7 @@ RUN apt update && \
     apt install -y \
     pandoc \
     && pip3 install -r requirements.txt \
+    && pip3 install psycopg2-binary \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 80
