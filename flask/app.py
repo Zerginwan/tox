@@ -54,7 +54,7 @@ def internal():
         args = []
         args.append(request.json['object_type_id'])
         args.append(request.json['year'])
-        args.append(request.json['addition_objects'])
+        args.append(request.json['additional_objects'])
         answer = client.get(str(args))
         if answer is None:
             answer = workload_oracle(*args)
