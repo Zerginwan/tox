@@ -2,22 +2,20 @@ const getColor = (index, cell_zid) => {
   switch (index) {
     // значительно ниже норматива
     case 1:
-      return "#800026";
+      return "#CD5C5C";
     // значительно ниже норматива
     case 2:
-      return "#CD5C5C";
+      return "#FFA500";
     // ниже норматива
     case 3:
-      return "#FFA500";
+      return "#FFD700";
     // незначительно ниже норматива
     case 4:
-      return "#FFD700";
+      return "#9ACD32";
     // соответствует нормативу
     case 5:
-      return "#9ACD32";
-    // превышает норматив
-    case 6:
       return "#2E8B57";
+    // превышает норматив
     default:
       return;
   }
