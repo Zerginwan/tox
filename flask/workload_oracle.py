@@ -84,6 +84,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
 
 
     # 2 функции для определние наиболее распространенного значения index_pop по округам и районам
+    # okrugs_df['index_pop'] = adms_df.apply(index_pop_mode_from_another_df, another_df=adms_df,index='adm_zid', axis=1)
     def index_pop_mode_from_another_df(data,another_df: pandas.DataFrame, index: str):
             filter = data[index]
             if isinstance(filter,str):
@@ -424,7 +425,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 "SELECT okrug_okato,MAX(okrug_name) as okrug_name, array_agg(DISTINCT adm_zid) as adm_zid FROM adm_zones GROUP BY okrug_okato;",
                 con=engine
             )
-            okrugs_df['index_pop'] = adms_df.apply(index_pop_mode_from_another_df, another_df=adms_df,index='adm_zid', axis=1)
+            okrugs_df['index_pop'] = okrugs_df.apply(index_pop_mode_from_another_df, another_df=adms_df,index='adm_zid', axis=1)
 
             
             answer['data'].update({"adm_zones":adms_df.to_json(orient='records')})
@@ -447,5 +448,5 @@ if __name__ == "__main__":
     for i in range(16):
         print(i)
         workload_oracle(1,year=(2021+i), to_database=True)
-        workload_oracle(2,year=(2021+i), to_database=True)
+        # workload_oracle(2,year=(2021+i), to_database=True)
     # workload_oracle(1,year=2021,additional_objects=[{"lat": 37.595637, "lon": 55.609184,"cell_zid":113292}, {"lat": 37.630394, "lon": 55.577490}])
