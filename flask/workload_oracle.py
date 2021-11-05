@@ -162,7 +162,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 return None
         # zid - это список adm_zid
         elif type_config['range_type'] == 'adm_zone':
-            query = "SELECT array_agg(a.adm_zid) AS zid FROM adm_zones AS a JOIN sectors AS s ON s.cell_zid = a.cell_zid AND ST_Contains(s.geometry::geometry, point( :lon , :lat )::geometry) GROUP BY a.adm_zid;".format(**object)
+            query = "SELECT array_agg(a.adm_zid) AS zid FROM adm_zones AS a JOIN sectors AS s ON s.cell_zid = a.cell_zid AND ST_Contains(s.geometry::geometry, point( {lon} , {lat} )::geometry) GROUP BY a.adm_zid;".format(**object)
             f = engine.execute(text(query)).fetchone()
             if f:
                 zid = f['zid']
@@ -183,8 +183,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
 
 
     # создаем "подключение" к БД
-    # TODO закомментировать при сборке
-    # engine = sqlalchemy.create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
+    engine = sqlalchemy.create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
     # загружаем из базы конфиг для объекта
     type_config = pandas.read_sql_query(
                 "SELECT * FROM objects WHERE id = %i;" % object_type_id, 
@@ -393,10 +392,6 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 con=engine
             )
         cells_df['weight'] = 0
-        #добавляем "добавленные вручную" объекты для расчета
-        # TODO пока не работает. Передлеать на что-то не такое долгое
-        # for addon in additional_objects:
-            # objects_df.append(pandas.Series(addon),ignore_index=True)
 
 
         # если тип ограничения - range, то начисляем веса на сектора и вычисляем наиболее часто встречающееся число

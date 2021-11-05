@@ -8,7 +8,7 @@ import yaml, json
 from get_doc import get_doc
 from workload_oracle import workload_oracle 
 from get_sectors import get_sectors 
-from sqlalchemy import create_engine, inspect
+
 
 config = yaml.safe_load(open(".config.yml"))
 
@@ -28,8 +28,7 @@ client = RetryingClient(
     retry_delay=0.01,
     retry_for=[MemcacheUnexpectedCloseError]
 )
-# создаем "подключение" к БД
-engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
+
 # # /py открыта всем
 @app.route('/py/sectors', methods=['GET','POST'])
 def external():
@@ -37,7 +36,7 @@ def external():
         answer = client.get('sectors')
         if answer is None:
             answer = get_sectors()
-        client.set('sectors', answer, ttl=2505600)
+        client.set('sectors', answer)
         return answer
 
 # /internal недоступна извне
@@ -54,14 +53,14 @@ def internal():
             if answer is None:
                 answer = workload_oracle(**request.json)
             if len(args) < 4:    
-                client.set(str(args).replace(' ',''), answer, ttl=2505600)
+                client.set(str(args).replace(' ',''), answer)
 
             # rv = cache.get('my-item')
             # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
 
             return answer
         except Exception as e:
-            return e
+            raise e
 
 @app.route('/py/report', methods=['POST'])
 def report():
@@ -70,7 +69,7 @@ def report():
             answer = get_doc(**request.json)
             return answer
         except Exception as e:
-            return e
+            return str(e)
 
 @app.route('/py/report/<file>', methods=['GET'])
 def get_report(file):
