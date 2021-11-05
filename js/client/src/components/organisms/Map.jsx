@@ -149,7 +149,7 @@ const ToxMap = (props) => {
         pathOptions={{
           color: "green",
           opacity: 0.4,
-          fillOpacity: 0.2,
+          fillOpacity: 0.05,
         }}
       >
         <Circle
@@ -184,6 +184,23 @@ const ToxMap = (props) => {
   const [selectedAdmZone, setSelectedAdmZone] = useState(0);
   const [selectedOkrug, setSelectedOkrug] = useState(0);
 
+  const getAnalytics = (regionId, zoneType) => {
+    fetch("/py/report", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: Number(regionId),
+        zone_type: zoneType,
+        object_type_id_list: [1, 2],
+      }),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        window.open(result.data);
+      });
+  };
   return (
     <MapContainer
       center={[55.751244, 37.618423]}
@@ -259,6 +276,8 @@ const ToxMap = (props) => {
                               </Typography>
                               <Button
                                 variant="outlined"
+                                size="small"
+                                sx={{ width: 180 }}
                                 onClick={() => {
                                   setSelectedOkrug(
                                     data.okrugs.find(
@@ -274,6 +293,17 @@ const ToxMap = (props) => {
                               </Button>
                             </div>
                           ) : null}
+                          <Button
+                            variant="outlined"
+                            style={{ marginTop: 12 }}
+                            sx={{ width: 180 }}
+                            size="small"
+                            onClick={() => {
+                              getAnalytics(x.properties.OKATO, "okrug");
+                            }}
+                          >
+                            Составить записку
+                          </Button>
                         </Popup>
                       ) : null}
                     </GeoJSON>
@@ -332,6 +362,8 @@ const ToxMap = (props) => {
                               </Typography>
                               <Button
                                 variant="outlined"
+                                size="small"
+                                sx={{ width: 180 }}
                                 onClick={() => {
                                   setSelectedAdmZone(
                                     data.admZones.find(
@@ -347,6 +379,17 @@ const ToxMap = (props) => {
                               </Button>
                             </div>
                           ) : null}
+                          <Button
+                            variant="outlined"
+                            style={{ marginTop: 12 }}
+                            sx={{ width: 180 }}
+                            size="small"
+                            onClick={() => {
+                              getAnalytics(x.properties.OKATO, "adm_zone");
+                            }}
+                          >
+                            Составить записку
+                          </Button>
                         </Popup>
                       ) : null}
                     </GeoJSON>
@@ -372,13 +415,23 @@ const ToxMap = (props) => {
                         }}
                       >
                         <Popup>
-                          <p>
-                            <b>Учитываемое население:</b> {x.population}
-                          </p>
-                          <p>
-                            <b>Процент выполнения норматива:</b>{" "}
+                          <Typography variant="body2">
+                            Учитываемое население: {x.population}
+                          </Typography>
+                          <Typography variant="body2">
+                            Процент выполнения норматива:{" "}
                             {Math.round(x.weight * 100)}%
-                          </p>
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{ width: 180 }}
+                            onClick={() => {
+                              getAnalytics(x.cell_zid, "sector");
+                            }}
+                          >
+                            Составить записку
+                          </Button>
                         </Popup>
                       </Polygon>
                     ))
@@ -395,13 +448,23 @@ const ToxMap = (props) => {
                         }}
                       >
                         <Popup>
-                          <p>
-                            <b>Учитываемое население:</b> {x.population}
-                          </p>
-                          <p>
-                            <b>Процент выполнения норматива:</b>{" "}
+                          <Typography variant="body2">
+                            Учитываемое население: {x.population}
+                          </Typography>
+                          <Typography variant="body2">
+                            Процент выполнения норматива:{" "}
                             {Math.round(x.weight * 100)}%
-                          </p>
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{ width: 180 }}
+                            onClick={() => {
+                              getAnalytics(x.cell_zid, "sector");
+                            }}
+                          >
+                            Составить записку
+                          </Button>
                         </Popup>
                       </Polygon>
                     ))
@@ -415,11 +478,7 @@ const ToxMap = (props) => {
           </FeatureGroup>
         </LayersControl.Overlay>
       </LayersControl>
-      {/* {objectProp.name ? (
-        <Popup position={objectProp.position}>{objectProp.name}</Popup>
-      ) : null} */}
       <Legend indexes={visualProperties.affinityIndexes} />
-      {/* <YearPicker /> */}
     </MapContainer>
   );
 };
