@@ -45,9 +45,9 @@ def external():
 def internal():
     if request.method == 'POST':
         args = []
-        args.append(request.json['objectTypeId'])
+        args.append(request.json['object_type_id'])
         args.append(request.json['year'])
-        args.append(request.json['additionalObjects'])
+        args.append(request.json['additional_objects'])
         if len(args) < 4:
             answer = client.get(str(args).replace(' ',''))
         if answer is None:
