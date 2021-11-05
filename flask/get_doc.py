@@ -84,7 +84,7 @@ def get_doc(id:int, zone_type: str = 'adm_zone', object_type_id_list: list[int] 
     new_parser = HtmlToDocx()
     new_parser.add_html_to_document(markdown.markdown(final_template), document)
     document.save(docx_path)
-    answer['data'] = '/py/report/' + docx_path_file
+    answer['data'] = '/py/temp_files/' + docx_path_file
     return answer
     
     # return answer
