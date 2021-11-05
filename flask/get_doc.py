@@ -30,8 +30,7 @@ def get_doc(id:int, zone_type: str = 'adm_zone', object_type_id_list: list[int] 
     # создаем "подключение" к БД
     # подключаем конфиг
     config = yaml.safe_load(open(".config.yml"))
-    # TODO закомментировать при сборке
-    # engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
+    engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
     # объявляем словарь для ответа
     answer = {"warnings": None, "errors": None}
 

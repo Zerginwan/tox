@@ -8,7 +8,7 @@ import yaml, json
 from get_doc import get_doc
 from workload_oracle import workload_oracle 
 from get_sectors import get_sectors 
-from sqlalchemy import create_engine, inspect
+
 
 config = yaml.safe_load(open(".config.yml"))
 
@@ -28,8 +28,7 @@ client = RetryingClient(
     retry_delay=0.01,
     retry_for=[MemcacheUnexpectedCloseError]
 )
-# создаем "подключение" к БД
-engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
+
 # # /py открыта всем
 @app.route('/py/sectors', methods=['GET','POST'])
 def external():
@@ -61,7 +60,7 @@ def internal():
 
             return answer
         except Exception as e:
-            return str(e)
+            raise e
 
 @app.route('/py/report', methods=['POST'])
 def report():
