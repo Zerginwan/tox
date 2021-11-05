@@ -67,8 +67,8 @@ def report():
         return answer
 
 @app.route('/py/report/<file>', methods=['GET'])
-def get_report():
-    return send_file('./temp_files/%s' % request.view_args['file'])
+def get_report(file):
+    return send_file('./temp_files/%s' % file)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0",port=80,debug=False)
