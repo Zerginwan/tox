@@ -6,7 +6,7 @@ from sqlalchemy.sql.expression import text
 import itertools
 
 
-def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:list[dict] = [], to_database: bool = False, index_pop_principe: str = 'moda' ):
+def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:list[dict] = [], to_database: bool = False, index_pop_principe: str = 'average', minimum_population: int = 50 ):
     '''
     Функция расчета весов соответсвия стандартам по всем областям в выбранном приближении
 
@@ -23,6 +23,8 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
         "moda" или "average". 
         moda - самое часто-встречающееся
         average - среднее с округлением вниз
+    
+    minimum_population - число с минимальным населением на сектор. Все, что ниже - не учитывается
 
     '''
     from pandas.core.frame import DataFrame
@@ -368,9 +370,9 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 JOIN sectors AS s ON a.cell_zid = s.cell_zid
                 JOIN "%i_CLocation" AS cl ON cl.cell_zid = s.cell_zid
                 GROUP BY s.cell_zid
-                HAVING %s > 50
+                HAVING %s > %i
                 ;
-                ''' % ( query_pop_add, query_pop_add, year, query_pop_add),
+                ''' % ( query_pop_add, query_pop_add, year, query_pop_add, minimum_population),
                 con=engine
             )
         cells_df['weight'] = 0
