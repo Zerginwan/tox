@@ -79,7 +79,7 @@ const styles = {
     width: "600px",
     zIndex: 1000,
     backgroundColor: "whitesmoke",
-    padding: "32px 32px 24px 32px",
+    padding: "24px 32px 24px 32px",
     borderRadius: 12,
   },
   controlContent: {

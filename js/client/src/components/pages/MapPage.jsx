@@ -201,7 +201,9 @@ function MapPage(props) {
             <ToxMap
               selectedInfType={selectedInfType}
               selectedLayer={selectedLayer}
+              selectedYear={selectedYear}
               data={data}
+              selectLayer={selectLayer}
               addObjectMode={addObjectMode}
               objectMode={objectMode}
               visualProperties={visualProperties}

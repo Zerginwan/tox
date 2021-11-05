@@ -41,14 +41,6 @@ function MapLayersList(props) {
         </ListItemIcon>
         <ListItemText primary="Районы" />
       </ListItemButton>
-      {selectedInfType.objectId !== 1 ? (
-        <ListItemButton onClick={() => selectLayer(2)}>
-          <ListItemIcon>
-            <ViewModuleIcon />
-          </ListItemIcon>
-          <ListItemText primary="Сектора" />
-        </ListItemButton>
-      ) : null}
     </List>
   );
 }

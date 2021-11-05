@@ -1,5 +1,5 @@
 const { authJwt } = require("../middleware");
-const controller = require("../controllers/user.controller");
+const controller = require("../controllers/user.controller.js");
 
 module.exports = function (app) {
   app.use(function (req, res, next) {
@@ -16,21 +16,15 @@ module.exports = function (app) {
     controller.getAllUsers
   );
 
-  app.get(
-    "/api/sectors",
-    [authJwt.verifyToken],
-    controller.getSectors
-  );
+  app.get("/api/sectors", [authJwt.verifyToken], controller.getSectors);
 
-  app.get(
-    "/api/getData",
-    [authJwt.verifyToken],
-    controller.getData
-  );
+  app.get("/api/getData", [authJwt.verifyToken], controller.getData);
 
   app.get(
     "/api/visualProperties",
     [authJwt.verifyToken],
     controller.getVisualProperties
   );
+
+  app.post("/api/addObject", [authJwt.verifyToken], controller.addObject);
 };

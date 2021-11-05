@@ -1,3 +1,5 @@
+const fetch = require("node-fetch-commonjs");
+
 const db = require("../models");
 const pool = require("../db/quieries");
 
@@ -93,7 +95,26 @@ exports.getData = (req, res) => {
 };
 
 exports.addObject = (req, res) => {
+  console.log("REQUEST: ", req.body);
+
   (async () => {
-    const res = await fetch("https://dev.cart.is/py/initial");
+    const res = await fetch("/initial", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        object_type_id: req.body.objectTypeId,
+        year: req.body.year,
+        additional_objects: [
+          {
+            lon: req.body.lon,
+            lat: req.body.lat,
+          },
+        ],
+      }),
+    }).then((response) =>
+      response.json().then((result) => {
+        console.log("RESPONSE: ", result);
+      })
+    );
   })();
 };

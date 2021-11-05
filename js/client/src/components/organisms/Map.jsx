@@ -1,9 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 
 import Legend from "../molecules/Legend";
-import YearPicker from "../molecules/YearPicker";
-
-import getColor from "../../lib/GetColor";
 
 import {
   MapContainer,
@@ -28,6 +25,9 @@ import AddObjectForm from "../molecules/AddObjectForm";
 
 import { aoJSON } from "../../geo/ao";
 import { moJSON } from "../../geo/mo.js";
+
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
 
 const ClickHandler = (props) => {
   const { addObject, selectedInfType, visualProperties } = props;
@@ -63,10 +63,12 @@ const ToxMap = (props) => {
   const {
     selectedLayer,
     selectedInfType,
+    selectLayer,
     data,
     visualProperties,
     addObjectMode,
     objectMode,
+    selectedYear,
     turnOffAddObjectMode,
   } = props;
 
@@ -77,7 +79,21 @@ const ToxMap = (props) => {
   });
 
   const addObject = (newObject) => {
+    console.log(newObject.position);
     setMyObjects((prevState) => [...prevState, newObject]);
+    fetch("/api/addObject", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-access-token": localStorage.getItem("accessToken"),
+      },
+      body: JSON.stringify({
+        objectTypeId: selectedInfType.objectId,
+        year: selectedYear,
+        lon: newObject.position.lng,
+        lat: newObject.position.lat,
+      }),
+    });
     turnOffAddObjectMode();
   };
 
@@ -165,6 +181,9 @@ const ToxMap = (props) => {
     ));
   }, [data.objects.mfc.length]);
 
+  const [selectedAdmZone, setSelectedAdmZone] = useState(0);
+  const [selectedOkrug, setSelectedOkrug] = useState(0);
+
   return (
     <MapContainer
       center={[55.751244, 37.618423]}
@@ -191,90 +210,201 @@ const ToxMap = (props) => {
           name="Административные округа"
         >
           <LayerGroup>
-            {aoJSON.features.map((x, index) => {
-              return (
-                <GeoJSON
-                  eventHandlers={{
-                    click: (e) => {
-                      setObjectProp({
-                        name: x.properties.NAME,
-                        position: e.latlng,
-                      });
-                    },
-                  }}
-                  key={index}
-                  style={{
-                    color: visualProperties.affinityIndexes.find(
-                      (item) =>
-                        item.id ==
-                        data.okrugs.find(
-                          (okrug) => okrug.okrug_okato === x.properties.OKATO
-                        )?.index_pop
-                    ).color,
-                  }}
-                  data={{
-                    features: [x],
-                  }}
-                ></GeoJSON>
-              );
-            })}
+            {selectedLayer === 0
+              ? aoJSON.features.map((x, index) => {
+                  return (
+                    <GeoJSON
+                      key={index}
+                      style={{
+                        color: visualProperties.affinityIndexes.find(
+                          (item) =>
+                            item.id ==
+                            data.okrugs.find(
+                              (okrug) =>
+                                okrug.okrug_okato === x.properties.OKATO
+                            )?.index_pop
+                        ).color,
+                      }}
+                      data={{
+                        features: [x],
+                      }}
+                    >
+                      {!addObjectMode ? (
+                        <Popup>
+                          <Typography variant="body1" sx={{ fontWeight: 900 }}>
+                            {x.properties.NAME}
+                          </Typography>
+                          <Typography variant="body2">
+                            ОКАТО: {x.properties.OKATO}
+                          </Typography>
+                          {selectedInfType.objectId !== 1 && data.sectors ? (
+                            <div>
+                              <Typography variant="body2">
+                                {"Население: "}
+                                {data.sectors
+                                  .filter((item) =>
+                                    item.okrug_okato.includes(
+                                      data.okrugs.find(
+                                        (item) =>
+                                          item.okrug_okato ===
+                                          x.properties.OKATO
+                                      ).okrug_okato
+                                    )
+                                  )
+                                  .reduce(
+                                    (population, item) =>
+                                      population + Number(item.population),
+                                    0
+                                  )}
+                              </Typography>
+                              <Button
+                                variant="outlined"
+                                onClick={() => {
+                                  setSelectedOkrug(
+                                    data.okrugs.find(
+                                      (item) =>
+                                        item.okrug_okato === x.properties.OKATO
+                                    ).okrug_okato
+                                  );
+                                  setSelectedAdmZone(0);
+                                  selectLayer(2);
+                                }}
+                              >
+                                Показать сектора
+                              </Button>
+                            </div>
+                          ) : null}
+                        </Popup>
+                      ) : null}
+                    </GeoJSON>
+                  );
+                })
+              : null}
           </LayerGroup>
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer checked={selectedLayer === 1} name="Районы">
           <LayerGroup>
-            {moJSON.features.map((x, index) => {
-              return (
-                <GeoJSON
-                  eventHandlers={{
-                    click: (e) => {
-                      setObjectProp({
-                        name: x.properties.NAME,
-                        position: e.latlng,
-                      });
-                    },
-                  }}
-                  key={index}
-                  data={{
-                    features: [x],
-                  }}
-                  style={{
-                    color: visualProperties.affinityIndexes.find(
-                      (item) =>
-                        item.id ==
-                        data.admZones.find(
-                          (admZones) =>
-                            admZones.adm_okato === x.properties.OKATO
-                        )?.index_pop
-                    ).color,
-                  }}
-                ></GeoJSON>
-              );
-            })}
+            {selectedLayer === 1
+              ? moJSON.features.map((x, index) => {
+                  return (
+                    <GeoJSON
+                      key={index}
+                      data={{
+                        features: [x],
+                      }}
+                      style={{
+                        color: visualProperties.affinityIndexes.find(
+                          (item) =>
+                            item.id ==
+                            data.admZones.find(
+                              (admZones) =>
+                                admZones.adm_okato === x.properties.OKATO
+                            )?.index_pop
+                        ).color,
+                      }}
+                    >
+                      {!addObjectMode ? (
+                        <Popup>
+                          <Typography variant="body1" sx={{ fontWeight: 900 }}>
+                            {x.properties.NAME}
+                          </Typography>
+                          <Typography variant="body2">
+                            ОКАТО: {x.properties.OKATO}
+                          </Typography>
+                          {selectedInfType.objectId !== 1 && data.sectors ? (
+                            <div>
+                              <Typography variant="body2">
+                                {"Население: "}
+                                {data.sectors
+                                  .filter((item) =>
+                                    item.adm_okato.includes(
+                                      data.admZones.find(
+                                        (item) =>
+                                          item.adm_okato === x.properties.OKATO
+                                      ).adm_okato
+                                    )
+                                  )
+                                  .reduce(
+                                    (population, item) =>
+                                      population + Number(item.population),
+                                    0
+                                  )}
+                              </Typography>
+                              <Button
+                                variant="outlined"
+                                onClick={() => {
+                                  setSelectedAdmZone(
+                                    data.admZones.find(
+                                      (item) =>
+                                        item.adm_okato === x.properties.OKATO
+                                    ).adm_okato
+                                  );
+                                  setSelectedOkrug(0);
+                                  selectLayer(2);
+                                }}
+                              >
+                                Показать сектора
+                              </Button>
+                            </div>
+                          ) : null}
+                        </Popup>
+                      ) : null}
+                    </GeoJSON>
+                  );
+                })
+              : null}
           </LayerGroup>
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer checked={selectedLayer === 2} name="Сектора">
           <LayerGroup>
             {selectedLayer === 2 && selectedInfType.objectId !== 1
-              ? data.sectors.map((x, index) => (
-                  <Polygon
-                    key={index}
-                    positions={JSON.parse(x.geometry)}
-                    pathOptions={{
-                      color: visualProperties.affinityIndexes.find(
-                        (item) => item.id == x.index_pop
-                      )?.color,
-                    }}
-                  >
-                    <Popup>
-                      <p>
-                        <b>Учитываемое население:</b> {x.population}
-                      </p>
-                      <p>
-                        <b>Процент выполнения норматива:</b> {x.weight * 100}%
-                      </p>
-                    </Popup>
-                  </Polygon>
-                ))
+              ? selectedOkrug && !selectedAdmZone
+                ? data.sectors
+                    .filter((item) => item.okrug_okato.includes(selectedOkrug))
+                    .map((x, index) => (
+                      <Polygon
+                        key={index}
+                        positions={JSON.parse(x.geometry)}
+                        pathOptions={{
+                          color: visualProperties.affinityIndexes.find(
+                            (item) => item.id == x.index_pop
+                          )?.color,
+                        }}
+                      >
+                        <Popup>
+                          <p>
+                            <b>Учитываемое население:</b> {x.population}
+                          </p>
+                          <p>
+                            <b>Процент выполнения норматива:</b>{" "}
+                            {Math.round(x.weight * 100)}%
+                          </p>
+                        </Popup>
+                      </Polygon>
+                    ))
+                : data.sectors
+                    .filter((item) => item.adm_okato.includes(selectedAdmZone))
+                    .map((x, index) => (
+                      <Polygon
+                        key={index}
+                        positions={JSON.parse(x.geometry)}
+                        pathOptions={{
+                          color: visualProperties.affinityIndexes.find(
+                            (item) => item.id == x.index_pop
+                          )?.color,
+                        }}
+                      >
+                        <Popup>
+                          <p>
+                            <b>Учитываемое население:</b> {x.population}
+                          </p>
+                          <p>
+                            <b>Процент выполнения норматива:</b>{" "}
+                            {Math.round(x.weight * 100)}%
+                          </p>
+                        </Popup>
+                      </Polygon>
+                    ))
               : null}
           </LayerGroup>
         </LayersControl.BaseLayer>
@@ -285,9 +415,9 @@ const ToxMap = (props) => {
           </FeatureGroup>
         </LayersControl.Overlay>
       </LayersControl>
-      {objectProp.name ? (
+      {/* {objectProp.name ? (
         <Popup position={objectProp.position}>{objectProp.name}</Popup>
-      ) : null}
+      ) : null} */}
       <Legend indexes={visualProperties.affinityIndexes} />
       {/* <YearPicker /> */}
     </MapContainer>
