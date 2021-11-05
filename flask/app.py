@@ -36,7 +36,7 @@ def external():
         answer = client.get('sectors')
         if answer is None:
             answer = get_sectors()
-        client.set('sectors', answer, ttl=2505600)
+        client.set('sectors', answer)
         return answer
 
 # /internal недоступна извне
@@ -53,7 +53,7 @@ def internal():
             if answer is None:
                 answer = workload_oracle(**request.json)
             if len(args) < 4:    
-                client.set(str(args).replace(' ',''), answer, ttl=2505600)
+                client.set(str(args).replace(' ',''), answer)
 
             # rv = cache.get('my-item')
             # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
