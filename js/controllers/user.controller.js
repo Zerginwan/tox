@@ -2,6 +2,7 @@ const fetch = require("node-fetch-commonjs");
 const yaml = require('js-yaml');
 const db = require("../models");
 const pool = require("../db/quieries");
+const fs = require('fs');
 const config = yaml.load(fs.readFileSync(__dirname + '/../.config.yml', 'utf-8'));
 const User = db.user;
 
