@@ -61,7 +61,7 @@ def internal():
 
             return answer
         except Exception as e:
-            return e
+            return str(e)
 
 @app.route('/py/report', methods=['POST'])
 def report():
@@ -70,7 +70,7 @@ def report():
             answer = get_doc(**request.json)
             return answer
         except Exception as e:
-            return e
+            return str(e)
 
 @app.route('/py/report/<file>', methods=['GET'])
 def get_report(file):
