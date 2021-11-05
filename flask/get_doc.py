@@ -4,15 +4,15 @@ from sqlalchemy.sql.expression import column, table
 import ast
 
 
-def get_doc(id:int, zoneType: str = 'adm_zone', objectTypeIdList: list[int] = [1,2] ):
+def get_doc(id:int, zone_type: str = 'adm_zone', object_type_id_list: list[int] = [1,2] ):
     '''
     Функция возвращет файл с отчетом 
     
     id - cell_zid или ОКАТО объекта
     
-    zoneType - тип зоны. 'sector'||'adm_zone'||'okrug'.
+    zone_type - тип зоны. 'sector'||'adm_zone'||'okrug'.
 
-    objectTypeIdList - список с id типов объектов, по которым нужно составить записку.
+    object_type_id_list - список с id типов объектов, по которым нужно составить записку.
 
     '''
     from pandas.core.frame import DataFrame
@@ -35,10 +35,10 @@ def get_doc(id:int, zoneType: str = 'adm_zone', objectTypeIdList: list[int] = [1
     # объявляем словарь для ответа
     answer = {"warnings": None, "errors": None}
 
-    if zoneType == 'sector':
+    if zone_type == 'sector':
         docx_path_file = '%i.docx' % id
     else:
-        docx_path_file = '%s_%i.docx' % (zoneType, id)
+        docx_path_file = '%s_%i.docx' % (zone_type, id)
     docx_path = './temp_files/' + docx_path_file
     if Path(docx_path).is_file():
         os.remove(docx_path)
@@ -58,23 +58,23 @@ def get_doc(id:int, zoneType: str = 'adm_zone', objectTypeIdList: list[int] = [1
     
 
     head_config = {
-        "zoneType_display": report_config.query('value == @zoneType')['zoneType_display'].values[0],
+        "zone_type_display": report_config.query('value == @zone_type')['zone_type_display'].values[0],
         "okato_or_index": id,
-        "addon_after_id": report_config.query('value == @zoneType')['addon_after_id'].values[0],
+        "addon_after_id": report_config.query('value == @zone_type')['addon_after_id'].values[0],
         "name": ''
     }
-    if zoneType != 'sector':
-        name = engine.execute(text("SELECT	{} AS name FROM adm_zones WHERE {} = {}".format(report_config.query('value == @zoneType')['column_with_name'].values[0], report_config.query('value == @zoneType')['column_with_id'].values[0], id)  )).fetchone()['name']
+    if zone_type != 'sector':
+        name = engine.execute(text("SELECT	{} AS name FROM adm_zones WHERE {} = {}".format(report_config.query('value == @zone_type')['column_with_name'].values[0], report_config.query('value == @zone_type')['column_with_id'].values[0], id)  )).fetchone()['name']
         head_config.update({"name": name})
         
     final_template = Template(Path('templates/report_head.md').read_text(encoding='utf-8')).substitute(**head_config)
-    for object_type_id in objectTypeIdList:
-        if not (object_config.query('id == @object_type_id')['range_type'].values[0] != 'range' and zoneType == 'sector'):
+    for object_type_id in object_type_id_list:
+        if not (object_config.query('id == @object_type_id')['range_type'].values[0] != 'range' and zone_type == 'sector'):
 
             final_template += '\n'
             if Path('templates/%i.md' % object_type_id).is_file():
-                column = report_config.loc[report_config['value'] == zoneType , 'column_with_id'].values[0]
-                o_config = {"index_pop_display": engine.execute(text("SELECT a.display AS display FROM affinity_indexes AS a JOIN preset_%i_2021_%ss AS p ON p.%s = %i AND p.index_pop = a.id" % (object_type_id, zoneType, column, id) )).fetchone()['display'] }
+                column = report_config.loc[report_config['value'] == zone_type , 'column_with_id'].values[0]
+                o_config = {"index_pop_display": engine.execute(text("SELECT a.display AS display FROM affinity_indexes AS a JOIN preset_%i_2021_%ss AS p ON p.%s = %i AND p.index_pop = a.id" % (object_type_id, zone_type, column, id) )).fetchone()['display'] }
                 final_template += Template(Path('templates/%i.md' % object_type_id).read_text(encoding='utf-8')).substitute(**o_config)
             else:
                 if not isinstance(answer['warnings'], list):
@@ -87,3 +87,7 @@ def get_doc(id:int, zoneType: str = 'adm_zone', objectTypeIdList: list[int] = [1
     document.save(docx_path)
     answer['data'] = '/py/report/' + docx_path_file
     return answer
+    
+    # return answer
+if __name__ == "__main__":
+    print(get_doc(id=45263000, zone_type='okrug'))
