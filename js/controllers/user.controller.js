@@ -103,8 +103,8 @@ exports.addObject = (req, res) => {
       year: req.body.year,
       additional_objects: [
         {
-          lon: req.body.lon,
           lat: req.body.lat,
+          lon: req.body.lon,
         },
       ],
     }),

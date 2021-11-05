@@ -29,7 +29,7 @@ const Legend = (props) => {
       style={{ marginBottom: "40px" }}
     >
       <div className="leaflet-control leaflet-bar" style={styles.content}>
-        <h3 style={{ marginBottom: 8 }}>Легенда:</h3>
+        <h3 style={{ marginBottom: 8 }}>Условные обозначения:</h3>
         {indexes
           .sort((a, b) => b.id - a.id)
           .map((x) => {
