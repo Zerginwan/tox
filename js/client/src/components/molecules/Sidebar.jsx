@@ -3,6 +3,7 @@ import { useState } from "react";
 import Divider from "@mui/material/Divider";
 import AddIcon from "@mui/icons-material/Add";
 import Checkbox from "@mui/material/Checkbox";
+import Switch from "@mui/material/Switch";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -63,7 +64,7 @@ function Sidebar(props) {
           <FormControlLabel
             label="Показать прогноз"
             control={
-              <Checkbox
+              <Switch
                 checked={isYearSelectorOpen}
                 onChange={toggleYearSelectorOpen}
               />
@@ -85,7 +86,7 @@ function Sidebar(props) {
           <FormControlLabel
             label="Отображать объекты"
             control={
-              <Checkbox checked={objectMode} onChange={toggleObjectMode} />
+              <Switch checked={objectMode} onChange={toggleObjectMode} />
             }
           />
         </ListItem>

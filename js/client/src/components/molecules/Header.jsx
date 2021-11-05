@@ -47,7 +47,7 @@ function Header(props) {
           component="div"
           sx={{ flexGrow: 1, fontWeight: 700 }}
         >
-          Меню
+          Панель управления
         </Typography>
         {role === "ROLE_ADMIN" ? (
           <IconButton>

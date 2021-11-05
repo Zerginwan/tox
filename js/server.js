@@ -4,8 +4,6 @@ const bodyParser = require("body-parser");
 const router = express.Router();
 const path = require("path");
 
-const bcrypt = require("bcryptjs");
-
 const PORT = process.env.PORT || 3000;
 
 const app = express();
