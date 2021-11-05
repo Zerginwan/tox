@@ -153,6 +153,42 @@ function MapPage(props) {
     setIsYearSelectorOpen((s) => !s);
   };
 
+  const changeData = (newData) => {
+    const newOkrugs = JSON.parse(newData.okrugs);
+    const newAdmZones = JSON.parse(newData.adm_zones);
+    const newSectors = JSON.parse(newData.sectors);
+
+    setData((prevState) => {
+      const newState = { ...prevState };
+
+      newOkrugs.map((x) =>
+        newState.okrugs.splice(
+          newState.okrugs.findIndex(
+            (item) => item.okrug_okato == x.okrug_okato
+          ),
+          1,
+          x
+        )
+      );
+      newAdmZones.map((x) =>
+        newState.admZones.splice(
+          newState.admZones.findIndex((item) => item.adm_okato == x.adm_okato),
+          1,
+          x
+        )
+      );
+      newSectors.map((x) =>
+        newState.sectors.splice(
+          newState.sectors.findIndex((item) => item.cell_zid == x.cell_zid),
+          1,
+          x
+        )
+      );
+
+      return newState;
+    });
+  };
+
   const render = () => {
     if (status.isLoading) {
       return (
@@ -203,6 +239,7 @@ function MapPage(props) {
               selectedLayer={selectedLayer}
               selectedYear={selectedYear}
               data={data}
+              changeData={changeData}
               selectLayer={selectLayer}
               addObjectMode={addObjectMode}
               objectMode={objectMode}
