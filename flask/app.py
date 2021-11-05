@@ -48,19 +48,19 @@ def internal():
             args.append(request.json['object_type_id'])
             args.append(request.json['year'])
             args.append(request.json['additional_objects'])
-            if len(args) < 4:
-                answer = client.get(str(args).replace(' ',''))
-            if answer is None:
-                answer = workload_oracle(**request.json)
-            if len(args) < 4:    
-                client.set(str(args).replace(' ',''), answer)
+            # if len(args) < 4:
+                # answer = client.get(str(args).replace(' ',''))
+            # if answer is None:
+            answer = workload_oracle(**request.json)
+            # if len(args) < 4:    
+                # client.set(str(args).replace(' ',''), answer)
 
             # rv = cache.get('my-item')
             # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
 
             return answer
         except Exception as e:
-            raise e
+            return str(e)
 
 @app.route('/py/report', methods=['POST'])
 def report():
