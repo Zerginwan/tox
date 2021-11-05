@@ -90,8 +90,8 @@ const ToxMap = (props) => {
       body: JSON.stringify({
         objectTypeId: selectedInfType.objectId,
         year: selectedYear,
-        lon: newObject.position.lng,
-        lat: newObject.position.lat,
+        lon: newObject.position.lat,
+        lat: newObject.position.lng,
       }),
     });
     turnOffAddObjectMode();
