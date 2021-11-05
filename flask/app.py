@@ -44,27 +44,33 @@ def external():
 @app.route('/internal', methods=['POST'])
 def internal():
     if request.method == 'POST':
-        args = []
-        args.append(request.json['object_type_id'])
-        args.append(request.json['year'])
-        args.append(request.json['additional_objects'])
-        if len(args) < 4:
-            answer = client.get(str(args).replace(' ',''))
-        if answer is None:
-            answer = workload_oracle(**request.json)
-        if len(args) < 4:    
-            client.set(str(args).replace(' ',''), answer, ttl=2505600)
+        try:
+            args = []
+            args.append(request.json['object_type_id'])
+            args.append(request.json['year'])
+            args.append(request.json['additional_objects'])
+            if len(args) < 4:
+                answer = client.get(str(args).replace(' ',''))
+            if answer is None:
+                answer = workload_oracle(**request.json)
+            if len(args) < 4:    
+                client.set(str(args).replace(' ',''), answer, ttl=2505600)
 
-        # rv = cache.get('my-item')
-        # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
-    
-        return answer
+            # rv = cache.get('my-item')
+            # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
+
+            return answer
+        except Exception as e:
+            return e
 
 @app.route('/py/report', methods=['POST'])
 def report():
     if request.method == 'POST':
-        answer = get_doc(**request.json)
-        return answer
+        try:
+            answer = get_doc(**request.json)
+            return answer
+        except Exception as e:
+            return e
 
 @app.route('/py/report/<file>', methods=['GET'])
 def get_report(file):
