@@ -6,7 +6,7 @@ from sqlalchemy.sql.expression import text
 import itertools
 
 
-def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:list[dict] = [], to_database: bool = False):
+def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:list[dict] = [], to_database: bool = False, index_pop_principe: str = 'moda' ):
     '''
     Функция расчета весов соответсвия стандартам по всем областям в выбранном приближении
 
@@ -18,6 +18,11 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
     additional_objects - список из  dict { lon:float, lat:float, zid:int = None } координаты и сектор дополнительных объектов
 
     to_database - создать предcгенеренную базу базу с готовыми результатами.
+
+    index_pop_principe - покрас "вышестоящего" слова в зависимости от содержания "нижестоящего".
+        "moda" или "average". 
+        moda - самое часто-встречающееся
+        average - среднее с округлением вниз
 
     '''
     from pandas.core.frame import DataFrame
@@ -92,7 +97,12 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
             if filter:
                     if not isinstance(filter, (list)):
                         filter = [filter]
-            return Counter(another_df.query('%s in @filter' % index )['index_pop'].tolist()).most_common(1)[0][0]
+            if index_pop_principe == 'average':
+                l = another_df.query('%s in @filter' % index )['index_pop'].tolist()
+                c = int(float(sum(l)) / max(len(l), 1))
+                return c
+            elif index_pop_principe == 'moda':
+                return Counter(another_df.query('%s in @filter' % index )['index_pop'].tolist()).most_common(1)[0][0]
     # def index_pop_mode_from_another_df_with_series(data,another_df: pandas.DataFrame, index: str):
     #         filter = data[index]
     #         if isinstance(filter,str):
@@ -358,7 +368,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 JOIN sectors AS s ON a.cell_zid = s.cell_zid
                 JOIN "%i_CLocation" AS cl ON cl.cell_zid = s.cell_zid
                 GROUP BY s.cell_zid
-                HAVING %s > 0
+                HAVING %s > 50
                 ;
                 ''' % ( query_pop_add, query_pop_add, year, query_pop_add),
                 con=engine
@@ -447,6 +457,6 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
 if __name__ == "__main__":
     for i in range(16):
         print(i)
-        workload_oracle(1,year=(2021+i), to_database=True)
-        # workload_oracle(2,year=(2021+i), to_database=True)
+        # workload_oracle(1,year=(2021+i), to_database=True)
+        workload_oracle(2,year=(2021+i), to_database=True)
     # workload_oracle(1,year=2021,additional_objects=[{"lat": 37.595637, "lon": 55.609184,"cell_zid":113292}, {"lat": 37.630394, "lon": 55.577490}])
