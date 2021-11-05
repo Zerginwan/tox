@@ -5,7 +5,7 @@ from pymemcache.client.retrying import RetryingClient
 from pymemcache.exceptions import MemcacheUnexpectedCloseError
 from werkzeug.utils import send_file
 import yaml, json
-from flask.get_doc import get_doc
+from get_doc import get_doc
 from workload_oracle import workload_oracle 
 from get_sectors import get_sectors 
 from sqlalchemy import create_engine, inspect
