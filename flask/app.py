@@ -34,10 +34,10 @@ engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{databa
 @app.route('/py/sectors', methods=['GET','POST'])
 def external():
     if request.method == 'GET':
-        # answer = client.get('sectors')
-        # if answer is None:
-        answer = get_sectors()
-        # client.set('sectors', answer, ttl=2505600)
+        answer = client.get('sectors')
+        if answer is None:
+            answer = get_sectors()
+        client.set('sectors', answer, ttl=2505600)
         return answer
 
 # /internal недоступна извне
@@ -45,9 +45,9 @@ def external():
 def internal():
     if request.method == 'POST':
         args = []
-        args.append(request.json['object_type_id'])
+        args.append(request.json['objectTypeId'])
         args.append(request.json['year'])
-        args.append(request.json['additional_objects'])
+        args.append(request.json['additionalObjects'])
         if len(args) < 4:
             answer = client.get(str(args).replace(' ',''))
         if answer is None:

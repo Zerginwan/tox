@@ -22,7 +22,7 @@ def get_sectors():
     # подключаем конфиг
     config = yaml.safe_load(open(".config.yml"))
     # TODO закомментировать при сборке
-    engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
+    # engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
     # объявляем словарь для ответа
     answer = {"warnings": None, "errors": None}
     # Бежим по объектам

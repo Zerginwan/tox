@@ -6,25 +6,25 @@ from sqlalchemy.sql.expression import text
 import itertools
 
 
-def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:list[dict] = [], to_database: bool = False, index_pop_principe: str = 'average', minimum_population: int = 50 ):
+def workload_oracle(objectTypeId: int, year: int = 2021, additionalObjects:list[dict] = [], toDatabase: bool = False, indexPopPrincipe: str = 'average', minimumPopulation: int = 50 ):
     '''
     Функция расчета весов соответсвия стандартам по всем областям в выбранном приближении
 
-    object_type_id - переменная типа объекта, по которому считаются требования (mfc, polyclinic_child, etc...),
+    objectTypeId - переменная типа объекта, по которому считаются требования (mfc, polyclinic_child, etc...),
                 берется из objects.id
 
     year    - население за какой год мы берем. Нужно для обсчета "будущего". По-умолчанию 2021г.
     
-    additional_objects - список из  dict { lon:float, lat:float, zid:int = None } координаты и сектор дополнительных объектов
+    additionalObjects - список из  dict { lon:float, lat:float, zid:int = None } координаты и сектор дополнительных объектов
 
-    to_database - создать предcгенеренную базу базу с готовыми результатами.
+    toDatabase - создать предcгенеренную базу базу с готовыми результатами.
 
-    index_pop_principe - покрас "вышестоящего" слова в зависимости от содержания "нижестоящего".
+    indexPopPrincipe - покрас "вышестоящего" слова в зависимости от содержания "нижестоящего".
         "moda" или "average". 
         moda - самое часто-встречающееся
         average - среднее с округлением вниз
     
-    minimum_population - число с минимальным населением на сектор. Все, что ниже - не учитывается
+    minimumPopulation - число с минимальным населением на сектор. Все, что ниже - не учитывается
 
     '''
     from pandas.core.frame import DataFrame
@@ -99,11 +99,11 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
             if filter:
                     if not isinstance(filter, (list)):
                         filter = [filter]
-            if index_pop_principe == 'average':
+            if indexPopPrincipe == 'average':
                 l = another_df.query('%s in @filter' % index )['index_pop'].tolist()
                 c = int(float(sum(l)) / max(len(l), 1))
                 return c
-            elif index_pop_principe == 'moda':
+            elif indexPopPrincipe == 'moda':
                 return Counter(another_df.query('%s in @filter' % index )['index_pop'].tolist()).most_common(1)[0][0]
     # def index_pop_mode_from_another_df_with_series(data,another_df: pandas.DataFrame, index: str):
     #         filter = data[index]
@@ -174,15 +174,15 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
 
     # создаем "подключение" к БД
     # TODO закомментировать при сборке
-    engine = sqlalchemy.create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
+    # engine = sqlalchemy.create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
     # загружаем из базы конфиг для объекта
     type_config = pandas.read_sql_query(
-                "SELECT * FROM objects WHERE id = %i;" % object_type_id, 
+                "SELECT * FROM objects WHERE id = %i;" % objectTypeId, 
                 con=engine
             ).loc[0].to_dict()
         
     # таблица с пресетом
-    table_name_prefix = "preset_%i_%i_" %(object_type_id, year)
+    table_name_prefix = "preset_%i_%i_" %(objectTypeId, year)
 
     # объявляем словарь для ответа
     answer = {"data":{},"warnings": None, "errors": None}
@@ -204,10 +204,10 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 ).to_dict('records')
     
     # если есть доп-объекты, которые не учтены в пресете (ддобавлены на карту пользователем)
-    if len(additional_objects) > 0:
+    if len(additionalObjects) > 0:
         
         # если есть доп-объекты, то считаем только ячейки, которые их касаются
-        if len(additional_objects) > 0:
+        if len(additionalObjects) > 0:
             # выгружаем пресеты, чтобы посчитать новое на их основе
             preset_dict = {}
             # бегаем по нужным объектам - сектора, адм-зоны, округа, выгружаем их пресеты
@@ -226,7 +226,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                     can_do_preset = False
                     break
             # находим zid - берем или из объекта, или находим по координатам
-            for k,v in enumerate(additional_objects):
+            for k,v in enumerate(additionalObjects):
                 if 'cell_zid' in v.keys() and v['cell_zid']:
                     if type_config['range_type'] == 'range':
                         zid = v['cell_zid']
@@ -236,26 +236,26 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                     zid = get_zid_for_object(v)
 
                 if zid:
-                    additional_objects[k].update({"zid": zid})
+                    additionalObjects[k].update({"zid": zid})
                 else:
-                    additional_objects.remove(v)
+                    additionalObjects.remove(v)
             # создает объект для ответа
             answer['data']['new'] = {}
             # Если есть пререквизит по радиусу, то нам нужны сектора
             # находим список нужных секторов
             recalculated_objects_index_list = []
             if type_config['range_type'] == 'range':
-                for a in additional_objects:
+                for a in additionalObjects:
                     recalculated_objects_index_list.append(get_sectors_in_radius(a['zid'], type_config['range']))
                 # берем уникальные нужные сектора
                 recalculated_objects_index_list = list(set(numpy.concatenate(recalculated_objects_index_list)))
             elif type_config['range_type'] == 'adm_zone':
-                for a in additional_objects:
+                for a in additionalObjects:
                     recalculated_objects_index_list.append(a['zid'])
                 recalculated_objects_index_list = list(set(itertools.chain.from_iterable(recalculated_objects_index_list)))
 
             # выбираем датафрейм с нужными секторами
-            additional_objects_df = DataFrame(additional_objects)
+            additionalObjects_df = DataFrame(additionalObjects)
             # text -> list
             preset_dict['adm_zones']['cell_zid'] =  preset_dict['adm_zones']['cell_zid'].apply(str_to_list)
             preset_dict['okrugs']['adm_zid'] =  preset_dict['okrugs']['adm_zid'].apply(str_to_list)
@@ -273,7 +273,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 okrugs_df = preset_dict['okrugs'].query('okrug_okato in @o_list')
 
                 # пересчитываем вес
-                additional_objects_df.apply(add_weight, axis=1)
+                additionalObjects_df.apply(add_weight, axis=1)
 
                 # считаем индекс
                 cells_df['index_pop'] = cells_df.apply(find_index_pop, axis=1)
@@ -292,7 +292,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
             # для адм-зон пересчитываем только адм-зоны
             elif type_config['range_type'] == 'adm_zone':
                 adms_df = preset_dict['adm_zones'].query('adm_zid in @recalculated_objects_index_list')
-                adms_df['index_pop'] = adms_df.apply(object_counter_by_adm_zone, another_df=additional_objects_df, axis=1)
+                adms_df['index_pop'] = adms_df.apply(object_counter_by_adm_zone, another_df=additionalObjects_df, axis=1)
                 # посчитали заново затронутые округа
                 bool_list = preset_dict['okrugs']['adm_zid'].apply(is_list_in_series, series=adms_df['adm_zid']).values.tolist()
                 okrugs_df = preset_dict['okrugs'].loc[bool_list]
@@ -312,7 +312,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                     
                 
         # если это типовой запрос - просто берем пресет
-    elif not to_database:
+    elif not toDatabase:
         for a_obj in answer_objects:
             table_name = table_name_prefix + a_obj
             if sqlalchemy.inspect(engine).has_table(table_name):
@@ -372,13 +372,13 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 GROUP BY s.cell_zid
                 HAVING %s > %i
                 ;
-                ''' % ( query_pop_add, query_pop_add, year, query_pop_add, minimum_population),
+                ''' % ( query_pop_add, query_pop_add, year, query_pop_add, minimumPopulation),
                 con=engine
             )
         cells_df['weight'] = 0
         #добавляем "добавленные вручную" объекты для расчета
         # TODO пока не работает. Передлеать на что-то не такое долгое
-        # for addon in additional_objects:
+        # for addon in additionalObjects:
             # objects_df.append(pandas.Series(addon),ignore_index=True)
 
 
@@ -444,7 +444,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
             answer['data'].update({"okrugs":okrugs_df.to_json(orient='records')})
 
     # если нужно забписать в базу - записываем в базу
-    if to_database:
+    if toDatabase:
         to_db = {"sectors": cells_df, "adm_zones":adms_df, "okrugs": okrugs_df}
         if type_config['range_type'] == 'range':
             to_db.update({"sectors": cells_df})
@@ -459,6 +459,6 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
 if __name__ == "__main__":
     for i in range(16):
         print(i)
-        # workload_oracle(1,year=(2021+i), to_database=True)
-        workload_oracle(2,year=(2021+i), to_database=True)
-    # workload_oracle(1,year=2021,additional_objects=[{"lat": 37.595637, "lon": 55.609184,"cell_zid":113292}, {"lat": 37.630394, "lon": 55.577490}])
+        workload_oracle(1,year=(2021+i), toDatabase=True)
+        workload_oracle(2,year=(2021+i), toDatabase=True)
+    # workload_oracle(1,year=2021,additionalObjects=[{"lat": 37.595637, "lon": 55.609184,"cell_zid":113292}, {"lat": 37.630394, "lon": 55.577490}])
