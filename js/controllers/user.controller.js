@@ -95,7 +95,7 @@ exports.getData = (req, res) => {
 };
 
 exports.addObject = (req, res) => {
-  fetch("/initial", {
+  fetch("/internal", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
