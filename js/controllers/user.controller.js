@@ -1,9 +1,11 @@
 const fetch = require("node-fetch-commonjs");
-const yaml = require('js-yaml');
+const yaml = require("js-yaml");
 const db = require("../models");
 const pool = require("../db/quieries");
-const fs = require('fs');
-const config = yaml.load(fs.readFileSync(__dirname + '/../.config.yml', 'utf-8'));
+const fs = require("fs");
+const config = yaml.load(
+  fs.readFileSync(__dirname + "/../.config.yml", "utf-8")
+);
 const User = db.user;
 
 exports.getAllUsers = (req, res) => {
@@ -96,18 +98,13 @@ exports.getData = (req, res) => {
 };
 
 exports.addObject = (req, res) => {
-  fetch(config.flask.schema + "://" + config.flask.host +"/internal", {
+  fetch(config.flask.schema + "://" + config.flask.host + "/internal", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       object_type_id: req.body.objectTypeId,
       year: req.body.year,
-      additional_objects: [
-        {
-          lat: req.body.lat,
-          lon: req.body.lon,
-        },
-      ],
+      additional_objects: req.body.additionalObjects,
     }),
   })
     .then((res) => res.json())

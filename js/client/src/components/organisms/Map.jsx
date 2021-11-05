@@ -65,6 +65,7 @@ const ToxMap = (props) => {
     selectedInfType,
     selectLayer,
     data,
+    changeData,
     visualProperties,
     addObjectMode,
     objectMode,
@@ -79,8 +80,8 @@ const ToxMap = (props) => {
   });
 
   const addObject = (newObject) => {
-    console.log(newObject.position);
     setMyObjects((prevState) => [...prevState, newObject]);
+
     fetch("/api/addObject", {
       method: "POST",
       headers: {
@@ -90,10 +91,16 @@ const ToxMap = (props) => {
       body: JSON.stringify({
         objectTypeId: selectedInfType.objectId,
         year: selectedYear,
-        lon: newObject.position.lat,
-        lat: newObject.position.lng,
+        additionalObjects: [...myObjects, newObject].map((x) => ({
+          lat: x.position.lng,
+          lon: x.position.lat,
+        })),
       }),
-    });
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        changeData(result.data.new);
+      });
     turnOffAddObjectMode();
   };
 
@@ -121,7 +128,6 @@ const ToxMap = (props) => {
                 fillOpacity: 0.5,
               }}
             />
-            <ObjectInfoPopup object={object} />
           </Circle>
         ) : (
           <Circle
@@ -133,9 +139,7 @@ const ToxMap = (props) => {
               color: "blue",
               fillOpacity: 0.5,
             }}
-          >
-            <ObjectInfoPopup object={object} />
-          </Circle>
+          ></Circle>
         );
       });
   }, [selectedInfType, myObjects]);
@@ -201,6 +205,7 @@ const ToxMap = (props) => {
         window.open(result.data);
       });
   };
+
   return (
     <MapContainer
       center={[55.751244, 37.618423]}
@@ -221,7 +226,7 @@ const ToxMap = (props) => {
         attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <LayersControl position="topright">
+      <LayersControl position="bottomright">
         <LayersControl.BaseLayer
           checked={selectedLayer === 0}
           name="Административные округа"
@@ -237,8 +242,7 @@ const ToxMap = (props) => {
                           (item) =>
                             item.id ==
                             data.okrugs.find(
-                              (okrug) =>
-                                okrug.okrug_okato === x.properties.OKATO
+                              (okrug) => okrug.okrug_okato == x.properties.OKATO
                             )?.index_pop
                         ).color,
                       }}
@@ -263,8 +267,7 @@ const ToxMap = (props) => {
                                     item.okrug_okato.includes(
                                       data.okrugs.find(
                                         (item) =>
-                                          item.okrug_okato ===
-                                          x.properties.OKATO
+                                          item.okrug_okato == x.properties.OKATO
                                       ).okrug_okato
                                     )
                                   )
@@ -282,7 +285,7 @@ const ToxMap = (props) => {
                                   setSelectedOkrug(
                                     data.okrugs.find(
                                       (item) =>
-                                        item.okrug_okato === x.properties.OKATO
+                                        item.okrug_okato == x.properties.OKATO
                                     ).okrug_okato
                                   );
                                   setSelectedAdmZone(0);
@@ -323,14 +326,16 @@ const ToxMap = (props) => {
                         features: [x],
                       }}
                       style={{
-                        color: visualProperties.affinityIndexes.find(
-                          (item) =>
-                            item.id ==
-                            data.admZones.find(
-                              (admZones) =>
-                                admZones.adm_okato === x.properties.OKATO
-                            )?.index_pop
-                        ).color,
+                        color: visualProperties.affinityIndexes
+                          ? visualProperties.affinityIndexes.find(
+                              (item) =>
+                                item.id ==
+                                data.admZones.find(
+                                  (admZones) =>
+                                    admZones.adm_okato == x.properties.OKATO
+                                )?.index_pop
+                            ).color
+                          : null,
                       }}
                     >
                       {!addObjectMode ? (
@@ -350,7 +355,7 @@ const ToxMap = (props) => {
                                     item.adm_okato.includes(
                                       data.admZones.find(
                                         (item) =>
-                                          item.adm_okato === x.properties.OKATO
+                                          item.adm_okato == x.properties.OKATO
                                       ).adm_okato
                                     )
                                   )
@@ -368,7 +373,7 @@ const ToxMap = (props) => {
                                   setSelectedAdmZone(
                                     data.admZones.find(
                                       (item) =>
-                                        item.adm_okato === x.properties.OKATO
+                                        item.adm_okato == x.properties.OKATO
                                     ).adm_okato
                                   );
                                   setSelectedOkrug(0);
@@ -414,25 +419,27 @@ const ToxMap = (props) => {
                           )?.color,
                         }}
                       >
-                        <Popup>
-                          <Typography variant="body2">
-                            Учитываемое население: {x.population}
-                          </Typography>
-                          <Typography variant="body2">
-                            Процент выполнения норматива:{" "}
-                            {Math.round(x.weight * 100)}%
-                          </Typography>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            sx={{ width: 180 }}
-                            onClick={() => {
-                              getAnalytics(x.cell_zid, "sector");
-                            }}
-                          >
-                            Составить записку
-                          </Button>
-                        </Popup>
+                        {!addObjectMode ? (
+                          <Popup>
+                            <Typography variant="body2">
+                              Учитываемое население: {x.population}
+                            </Typography>
+                            <Typography variant="body2">
+                              Процент выполнения норматива:{" "}
+                              {Math.round(x.weight * 100)}%
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              sx={{ width: 180 }}
+                              onClick={() => {
+                                getAnalytics(x.cell_zid, "sector");
+                              }}
+                            >
+                              Составить записку
+                            </Button>
+                          </Popup>
+                        ) : null}
                       </Polygon>
                     ))
                 : data.sectors
@@ -447,25 +454,27 @@ const ToxMap = (props) => {
                           )?.color,
                         }}
                       >
-                        <Popup>
-                          <Typography variant="body2">
-                            Учитываемое население: {x.population}
-                          </Typography>
-                          <Typography variant="body2">
-                            Процент выполнения норматива:{" "}
-                            {Math.round(x.weight * 100)}%
-                          </Typography>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            sx={{ width: 180 }}
-                            onClick={() => {
-                              getAnalytics(x.cell_zid, "sector");
-                            }}
-                          >
-                            Составить записку
-                          </Button>
-                        </Popup>
+                        {!addObjectMode ? (
+                          <Popup>
+                            <Typography variant="body2">
+                              Учитываемое население: {x.population}
+                            </Typography>
+                            <Typography variant="body2">
+                              Процент выполнения норматива:{" "}
+                              {Math.round(x.weight * 100)}%
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              sx={{ width: 180 }}
+                              onClick={() => {
+                                getAnalytics(x.cell_zid, "sector");
+                              }}
+                            >
+                              Составить записку
+                            </Button>
+                          </Popup>
+                        ) : null}
                       </Polygon>
                     ))
               : null}

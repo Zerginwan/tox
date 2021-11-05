@@ -2,12 +2,13 @@ import getColor from "../../lib/GetColor";
 
 const styles = {
   container: {
-    marginBottom: "40px",
+    marginBottom: "20px",
   },
   content: {
     backgroundColor: "whitesmoke",
     padding: "0 18px 18px 18px",
     borderRadius: "20px",
+    border: "10px solid whitesmoke",
   },
   row: {
     display: "flex",
@@ -26,7 +27,7 @@ const Legend = (props) => {
   return (
     <div
       className="leaflet-bottom leaflet-right"
-      style={{ marginBottom: "40px" }}
+      style={{ marginBottom: "10px" }}
     >
       <div className="leaflet-control leaflet-bar" style={styles.content}>
         <h3 style={{ marginBottom: 8 }}>Условные обозначения:</h3>
