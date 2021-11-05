@@ -2,11 +2,11 @@ from numpy.core.defchararray import count, index
 from pandas.core import series
 from pandas.core.algorithms import value_counts
 from pandas.core.series import Series
-from sqlalchemy.sql.expression import text
+from sqlalchemy.sql.expression import null, text
 import itertools
 
 
-def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:list[dict] = [], to_database: bool = False, index_pop_principe: str = 'moda' ):
+def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:list[dict] = [], to_database: bool = False, index_pop_principe: str = 'average', minimum_population: int = 50 ):
     '''
     Функция расчета весов соответсвия стандартам по всем областям в выбранном приближении
 
@@ -23,6 +23,8 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
         "moda" или "average". 
         moda - самое часто-встречающееся
         average - среднее с округлением вниз
+    
+    minimum_population - число с минимальным населением на сектор. Все, что ниже - не учитывается
 
     '''
     from pandas.core.frame import DataFrame
@@ -152,12 +154,22 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
     def get_zid_for_object(object:dict) -> int:
         # zid -  это cell_zid сектора
         if type_config['range_type'] == 'range':
-            return engine.execute(text("SELECT cell_zid AS zid FROM sectors WHERE ST_Contains(geometry::geometry, point( :lon , :lat )::geometry)"),object).fetchone()['zid']
+            query = "SELECT cell_zid AS zid FROM sectors WHERE ST_Contains(geometry::geometry, point( {lon} , {lat} )::geometry)".format(**object)
+            f = engine.execute(text(query)).fetchone()
+            if f:
+                return f['zid']
+            else:
+                return None
         # zid - это список adm_zid
         elif type_config['range_type'] == 'adm_zone':
-            zid = engine.execute(text("SELECT array_agg(a.adm_zid) AS zid FROM adm_zones AS a JOIN sectors AS s ON s.cell_zid = a.cell_zid AND ST_Contains(s.geometry::geometry, point( :lon , :lat )::geometry) GROUP BY a.adm_zid;"),object).fetchone()['zid']
-            if isinstance(zid,int):
-                zid = [zid]
+            query = "SELECT array_agg(a.adm_zid) AS zid FROM adm_zones AS a JOIN sectors AS s ON s.cell_zid = a.cell_zid AND ST_Contains(s.geometry::geometry, point( :lon , :lat )::geometry) GROUP BY a.adm_zid;".format(**object)
+            f = engine.execute(text(query)).fetchone()
+            if f:
+                zid = f['zid']
+                if isinstance(zid,int):
+                    zid = [zid]
+            else:
+                zid = None
             return zid
     # находить пересечения
     def is_list_in_series(list,series) -> bool:
@@ -172,7 +184,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
 
     # создаем "подключение" к БД
     # TODO закомментировать при сборке
-    engine = sqlalchemy.create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
+    # engine = sqlalchemy.create_engine("postgresql://{username}:{password}@{host}:{port}/{database}".format(**config['db']) )
     # загружаем из базы конфиг для объекта
     type_config = pandas.read_sql_query(
                 "SELECT * FROM objects WHERE id = %i;" % object_type_id, 
@@ -246,65 +258,72 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 for a in additional_objects:
                     recalculated_objects_index_list.append(get_sectors_in_radius(a['zid'], type_config['range']))
                 # берем уникальные нужные сектора
-                recalculated_objects_index_list = list(set(numpy.concatenate(recalculated_objects_index_list)))
+                if len(recalculated_objects_index_list) > 0:
+                    recalculated_objects_index_list = list(set(numpy.concatenate(recalculated_objects_index_list)))
             elif type_config['range_type'] == 'adm_zone':
                 for a in additional_objects:
                     recalculated_objects_index_list.append(a['zid'])
-                recalculated_objects_index_list = list(set(itertools.chain.from_iterable(recalculated_objects_index_list)))
+                if len(recalculated_objects_index_list) > 0:
+                    recalculated_objects_index_list = list(set(itertools.chain.from_iterable(recalculated_objects_index_list)))
+            if len(recalculated_objects_index_list) > 0:
+                # выбираем датафрейм с нужными секторами
+                additional_objects_df = DataFrame(additional_objects)
+                # text -> list
+                preset_dict['adm_zones']['cell_zid'] =  preset_dict['adm_zones']['cell_zid'].apply(str_to_list)
+                preset_dict['okrugs']['adm_zid'] =  preset_dict['okrugs']['adm_zid'].apply(str_to_list)
 
-            # выбираем датафрейм с нужными секторами
-            additional_objects_df = DataFrame(additional_objects)
-            # text -> list
-            preset_dict['adm_zones']['cell_zid'] =  preset_dict['adm_zones']['cell_zid'].apply(str_to_list)
-            preset_dict['okrugs']['adm_zid'] =  preset_dict['okrugs']['adm_zid'].apply(str_to_list)
+                # для радиуса пересчитываем сектора и адм-зоны    
+                if type_config['range_type'] == 'range':
+                    cells_df = preset_dict['sectors'].query('cell_zid in @recalculated_objects_index_list')
+                    # ищем новые адм-зоны и округа
+                    # формируем списки для выборок
+                    new_c_list = cells_df['cell_zid'].tolist()
+                    a_list = list(set(itertools.chain.from_iterable(cells_df['adm_zid'].apply(str_to_list).tolist())))
+                    o_list = list(set(itertools.chain.from_iterable(cells_df['okrug_okato'].apply(str_to_list).tolist())))
+                    # нашли затронутые
+                    adms_df = preset_dict['adm_zones'].query('adm_zid in @a_list')
+                    okrugs_df = preset_dict['okrugs'].query('okrug_okato in @o_list')
 
-            # для радиуса пересчитываем сектора и адм-зоны    
-            if type_config['range_type'] == 'range':
-                cells_df = preset_dict['sectors'].query('cell_zid in @recalculated_objects_index_list')
-                # ищем новые адм-зоны и округа
-                # формируем списки для выборок
-                new_c_list = cells_df['cell_zid'].tolist()
-                a_list = list(set(itertools.chain.from_iterable(cells_df['adm_zid'].apply(str_to_list).tolist())))
-                o_list = list(set(itertools.chain.from_iterable(cells_df['okrug_okato'].apply(str_to_list).tolist())))
-                # нашли затронутые
-                adms_df = preset_dict['adm_zones'].query('adm_zid in @a_list')
-                okrugs_df = preset_dict['okrugs'].query('okrug_okato in @o_list')
+                    # пересчитываем вес
+                    additional_objects_df.apply(add_weight, axis=1)
 
-                # пересчитываем вес
-                additional_objects_df.apply(add_weight, axis=1)
+                    # считаем индекс
+                    cells_df['index_pop'] = cells_df.apply(find_index_pop, axis=1)
+                    cells_df['adm_zid'] = cells_df['adm_zid'].apply(str_to_list)
+                    cells_df['okrug_okato'] = cells_df['okrug_okato'].apply(str_to_list)
 
-                # считаем индекс
-                cells_df['index_pop'] = cells_df.apply(find_index_pop, axis=1)
-                cells_df['adm_zid'] = cells_df['adm_zid'].apply(str_to_list)
-                cells_df['okrug_okato'] = cells_df['okrug_okato'].apply(str_to_list)
-                
-                # записываем в ответ
-                answer['data']['new'].update({"sectors":cells_df.to_json(orient='records')})
-                
-                # посчитали заново затронутые районы
-                c_list = list(itertools.chain.from_iterable(adms_df['cell_zid'].tolist()))
-                old_and_new_cells = preset_dict['sectors'].query('cell_zid in @c_list')
-                old_and_new_cells['adm_zid'] = old_and_new_cells['adm_zid'].apply(str_to_list)
-                old_and_new_cells.loc[old_and_new_cells['cell_zid'].isin(cells_df['cell_zid'])] = cells_df
-                adms_df['index_pop'] = adms_df.apply(index_pop_mode_from_another_df, another_df=old_and_new_cells,index='cell_zid', axis=1)
-            # для адм-зон пересчитываем только адм-зоны
-            elif type_config['range_type'] == 'adm_zone':
-                adms_df = preset_dict['adm_zones'].query('adm_zid in @recalculated_objects_index_list')
-                adms_df['index_pop'] = adms_df.apply(object_counter_by_adm_zone, another_df=additional_objects_df, axis=1)
-                # посчитали заново затронутые округа
-                bool_list = preset_dict['okrugs']['adm_zid'].apply(is_list_in_series, series=adms_df['adm_zid']).values.tolist()
-                okrugs_df = preset_dict['okrugs'].loc[bool_list]
-                
-                
-            old_and_new_a_list = list(set(itertools.chain.from_iterable(okrugs_df['adm_zid'].tolist())))
-            old_and_new_adms = preset_dict['adm_zones'].query('adm_zid in @old_and_new_a_list')
-            old_and_new_adms.loc[old_and_new_adms['adm_zid'].isin(adms_df['adm_zid'])] = adms_df
-            
-            okrugs_df['index_pop'] = okrugs_df.apply(index_pop_mode_from_another_df, another_df=old_and_new_adms,index='adm_zid', axis=1)
+                    # записываем в ответ
+                    answer['data']['new'].update({"sectors":cells_df.to_json(orient='records')})
 
-            # дописываем ответ
-            answer['data']['new'].update({"adm_zones":adms_df.to_json(orient='records')})
-            answer['data']['new'].update({"okrugs":okrugs_df.to_json(orient='records')})
+                    # посчитали заново затронутые районы
+                    c_list = list(itertools.chain.from_iterable(adms_df['cell_zid'].tolist()))
+                    old_and_new_cells = preset_dict['sectors'].query('cell_zid in @c_list')
+                    old_and_new_cells['adm_zid'] = old_and_new_cells['adm_zid'].apply(str_to_list)
+                    old_and_new_cells.loc[old_and_new_cells['cell_zid'].isin(cells_df['cell_zid'])] = cells_df
+                    adms_df['index_pop'] = adms_df.apply(index_pop_mode_from_another_df, another_df=old_and_new_cells,index='cell_zid', axis=1)
+                # для адм-зон пересчитываем только адм-зоны
+                elif type_config['range_type'] == 'adm_zone':
+                    adms_df = preset_dict['adm_zones'].query('adm_zid in @recalculated_objects_index_list')
+                    adms_df['index_pop'] = adms_df.apply(object_counter_by_adm_zone, another_df=additional_objects_df, axis=1)
+                    # посчитали заново затронутые округа
+                    bool_list = preset_dict['okrugs']['adm_zid'].apply(is_list_in_series, series=adms_df['adm_zid']).values.tolist()
+                    okrugs_df = preset_dict['okrugs'].loc[bool_list]
+
+
+                old_and_new_a_list = list(set(itertools.chain.from_iterable(okrugs_df['adm_zid'].tolist())))
+                old_and_new_adms = preset_dict['adm_zones'].query('adm_zid in @old_and_new_a_list')
+                old_and_new_adms.loc[old_and_new_adms['adm_zid'].isin(adms_df['adm_zid'])] = adms_df
+
+                okrugs_df['index_pop'] = okrugs_df.apply(index_pop_mode_from_another_df, another_df=old_and_new_adms,index='adm_zid', axis=1)
+
+                # дописываем ответ
+                answer['data']['new'].update({"adm_zones":adms_df.to_json(orient='records')})
+                answer['data']['new'].update({"okrugs":okrugs_df.to_json(orient='records')})
+            else:
+                if not isinstance(answer['warnings'], list):
+                    answer['warnings'] = []
+                answer['warnings'].append('No sectors will be recalculated for these new objects')
+                return answer
 
 
                     
@@ -368,9 +387,9 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 JOIN sectors AS s ON a.cell_zid = s.cell_zid
                 JOIN "%i_CLocation" AS cl ON cl.cell_zid = s.cell_zid
                 GROUP BY s.cell_zid
-                HAVING %s > 50
+                HAVING %s > %i
                 ;
-                ''' % ( query_pop_add, query_pop_add, year, query_pop_add),
+                ''' % ( query_pop_add, query_pop_add, year, query_pop_add, minimum_population),
                 con=engine
             )
         cells_df['weight'] = 0
@@ -457,6 +476,6 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
 if __name__ == "__main__":
     for i in range(16):
         print(i)
-        # workload_oracle(1,year=(2021+i), to_database=True)
+        workload_oracle(1,year=(2021+i), to_database=True)
         workload_oracle(2,year=(2021+i), to_database=True)
-    # workload_oracle(1,year=2021,additional_objects=[{"lat": 37.595637, "lon": 55.609184,"cell_zid":113292}, {"lat": 37.630394, "lon": 55.577490}])
+    # print(workload_oracle(object_type_id=2,year=2021,additional_objects=[{"lat":37.74120753081595,"lon":55.85462107395498}]))

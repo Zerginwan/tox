@@ -3,7 +3,9 @@ from flask import Flask, request
 from pymemcache.client.base  import PooledClient
 from pymemcache.client.retrying import RetryingClient
 from pymemcache.exceptions import MemcacheUnexpectedCloseError
+from werkzeug.utils import send_file
 import yaml, json
+from get_doc import get_doc
 from workload_oracle import workload_oracle 
 from get_sectors import get_sectors 
 from sqlalchemy import create_engine, inspect
@@ -32,39 +34,47 @@ engine = create_engine("postgresql://{username}:{password}@{host}:{port}/{databa
 @app.route('/py/sectors', methods=['GET','POST'])
 def external():
     if request.method == 'GET':
-        # answer = client.get('sectors')
-        # if answer is None:
-        answer = get_sectors()
-        # client.set('sectors', answer, ttl=2505600)
+        answer = client.get('sectors')
+        if answer is None:
+            answer = get_sectors()
+        client.set('sectors', answer, ttl=2505600)
         return answer
 
 # /internal недоступна извне
-@app.route('/internal', methods=['GET','POST'])
+@app.route('/internal', methods=['POST'])
 def internal():
-    if request.method == 'GET':
-        type = request.args.get('type')
-        okato = request.args.get('okato')
-        answer = client.get(str(type + okato))
-        # full_default_answer = client.get(str(args))
-        # if answer is None:
-        #     answer = workload_oracle(*args)
-        return 'OK'
-
     if request.method == 'POST':
-        args = []
-        args.append(request.json['object_type_id'])
-        args.append(request.json['year'])
-        args.append(request.json['additional_objects'])
-        answer = client.get(str(args))
-        if answer is None:
-            answer = workload_oracle(*args)
-        client.set(str(args), answer, ttl=2505600)
+        try:
+            args = []
+            args.append(request.json['object_type_id'])
+            args.append(request.json['year'])
+            args.append(request.json['additional_objects'])
+            if len(args) < 4:
+                answer = client.get(str(args).replace(' ',''))
+            if answer is None:
+                answer = workload_oracle(**request.json)
+            if len(args) < 4:    
+                client.set(str(args).replace(' ',''), answer, ttl=2505600)
 
-        # rv = cache.get('my-item')
-        # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
-    
-        return answer
+            # rv = cache.get('my-item')
+            # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
 
+            return answer
+        except Exception as e:
+            return e
+
+@app.route('/py/report', methods=['POST'])
+def report():
+    if request.method == 'POST':
+        try:
+            answer = get_doc(**request.json)
+            return answer
+        except Exception as e:
+            return e
+
+@app.route('/py/report/<file>', methods=['GET'])
+def get_report(file):
+    return send_file('./temp_files/%s' % file)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0",port=80,debug=False)
