@@ -162,7 +162,7 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 return None
         # zid - это список adm_zid
         elif type_config['range_type'] == 'adm_zone':
-            query = "SELECT array_agg(a.adm_zid) AS zid FROM adm_zones AS a JOIN sectors AS s ON s.cell_zid = a.cell_zid AND ST_Contains(s.geometry::geometry, point( :lon , :lat )::geometry) GROUP BY a.adm_zid;".format(**object)
+            query = "SELECT array_agg(a.adm_zid) AS zid FROM adm_zones AS a JOIN sectors AS s ON s.cell_zid = a.cell_zid AND ST_Contains(s.geometry::geometry, point( {lon} , {lat} )::geometry) GROUP BY a.adm_zid;".format(**object)
             f = engine.execute(text(query)).fetchone()
             if f:
                 zid = f['zid']
