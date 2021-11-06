@@ -43,7 +43,7 @@ def external():
 @app.route('/internal', methods=['POST'])
 def internal():
     if request.method == 'POST':
-        try:
+        
             args = []
             args.append(request.json['object_type_id'])
             args.append(request.json['year'])
@@ -59,8 +59,7 @@ def internal():
             # cache.set('my-item', rv, timeout=config['memcached']['expiration'])
 
             return answer
-        except Exception as e:
-            return str(e)
+        
 
 @app.route('/py/report', methods=['POST'])
 def report():
