@@ -30,7 +30,6 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
     from pandas.core.frame import DataFrame
     import yaml, pandas, numpy, sqlalchemy, ast
     from collections import Counter
-
     # подключаем конфиг
     config = yaml.safe_load(open(".config.yml"))
 
@@ -120,36 +119,27 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
         r = r.replace('(','[').replace(')',']')
         return r
     # Подсчитываем количество объектов в адм-зоне
-    # adms_df['index_pop'] = adms_df.apply(object_counter, another_df=objects_df, axis=1)
     def object_counter_by_cell(data, another_df: pandas.DataFrame):
         all_cells_list = []
         for l in data['cell_zid']:
             all_cells_list.append(l)
         count = another_df.query('zid in @all_cells_list')['zid'].count()
 
-        if count > 1:
+        return count
+    # присваиваем индекс в азависимсоти от количества объектов
+    def index_pop_by_count(data):
+        if data['count'] > 1:
             r = 5
-        elif count > 0:
+        elif data['count'] > 0:
             r = 3
         else:
             r = 1
         return r
-    def object_counter_by_adm_zone(data, another_df: pandas.DataFrame):
-        all_cells_list = []
-        for l in data['cell_zid']:
-            if not isinstance(l, (list)):
-                l =  [l]
-            all_cells_list.append(l)
-        all_cells_list = Series(list(itertools.chain.from_iterable(all_cells_list)))
-        bool_list = another_df['zid'].apply(is_list_in_series, series=all_cells_list).values.tolist()
-        count = another_df.loc[bool_list]['zid'].count()
-        if count > 1:
-            r = 5
-        elif count > 0:
-            r = 3
-        else:
-            r = 1
-        return r
+    def object_add_counter_by_adm_zone(data, another_df: pandas.DataFrame):
+        count = data['count']
+        all_objects_list = list(itertools.chain.from_iterable(another_df['zid'].values.tolist()))
+        count += all_objects_list.count(data['adm_zid'])
+        return count
     # по широте и долготе находим zid
     def get_zid_for_object(object:dict) -> int:
         # zid -  это cell_zid сектора
@@ -303,7 +293,8 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
                 # для адм-зон пересчитываем только адм-зоны
                 elif type_config['range_type'] == 'adm_zone':
                     adms_df = preset_dict['adm_zones'].query('adm_zid in @recalculated_objects_index_list')
-                    adms_df['index_pop'] = adms_df.apply(object_counter_by_adm_zone, another_df=additional_objects_df, axis=1)
+                    adms_df['count'] = adms_df.apply(object_add_counter_by_adm_zone, another_df=additional_objects_df, axis=1)
+                    adms_df['index_pop'] = adms_df.apply(index_pop_by_count,axis=1)
                     # посчитали заново затронутые округа
                     bool_list = preset_dict['okrugs']['adm_zid'].apply(is_list_in_series, series=adms_df['adm_zid']).values.tolist()
                     okrugs_df = preset_dict['okrugs'].loc[bool_list]
@@ -442,7 +433,8 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
             )
             adms_df['index_pop'] = 0
 
-            adms_df['index_pop'] = adms_df.apply(object_counter_by_cell, another_df=objects_df, axis=1)
+            adms_df['count'] = adms_df.apply(object_counter_by_cell, another_df=objects_df, axis=1)
+            adms_df['index_pop'] = adms_df.apply(index_pop_by_count,axis=1)
 
             # 
             okrugs_df = pandas.read_sql_query(
@@ -469,8 +461,8 @@ def workload_oracle(object_type_id: int, year: int = 2021, additional_objects:li
 
 
 if __name__ == "__main__":
-    for i in range(16):
-        print(i)
-        workload_oracle(1,year=(2021+i), to_database=True)
-        workload_oracle(2,year=(2021+i), to_database=True)
-    # print(workload_oracle(object_type_id=2,year=2021,additional_objects=[{"lat":37.74120753081595,"lon":55.85462107395498}]))
+    # for i in range(16):
+        # print(i)
+        # workload_oracle(1,year=(2021+i), to_database=True)
+        # workload_oracle(2,year=(2021+i), to_database=True)
+    print(workload_oracle(object_type_id=1,year=2021,additional_objects=[{"lat":37.566726221703,"lon":55.7827200257883}]))
