@@ -104,6 +104,31 @@ const ToxMap = (props) => {
     turnOffAddObjectMode();
   };
 
+  const deleteObject = (id) => {
+    const filteredObjects = myObjects.filter((x) => x.id !== id);
+
+    fetch("/api/addObject", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-access-token": localStorage.getItem("accessToken"),
+      },
+      body: JSON.stringify({
+        objectTypeId: selectedInfType.objectId,
+        year: selectedYear,
+        additionalObjects: filteredObjects.map((x) => ({
+          lat: x.position.lng,
+          lon: x.position.lat,
+        })),
+      }),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        changeData(result.data.new ? result.data.new : result.data);
+        setMyObjects(filteredObjects);
+      });
+  };
+
   const objects = useMemo(() => {
     return myObjects
       .filter((x) => x.type === selectedInfType.objectId)
@@ -112,20 +137,48 @@ const ToxMap = (props) => {
           <Circle
             key={index}
             center={object.position}
-            radius={object.range}
+            radius={100}
             pathOptions={{
+              opacity: 0.5,
               color: "blue",
-              opacity: 1,
+              fillOpacity: 0.5,
             }}
           >
+            {!addObjectMode ? (
+              <Popup>
+                <Typography variant="body2" style={{ marginBottom: "8px" }}>
+                  Тип объекта:
+                </Typography>
+                <Typography variant="body2" style={{ marginTop: "0" }}>
+                  {
+                    visualProperties.objects.find((x) => x.id === object.type)
+                      .display
+                  }
+                </Typography>
+                <Typography variant="body2" style={{ marginBottom: "8px" }}>
+                  Коориданты объекта:
+                </Typography>
+                <Typography variant="body2" style={{ marginTop: "0" }}>
+                  {object.position.lng}, {object.position.lat}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => {
+                    deleteObject(object.id);
+                  }}
+                >
+                  Удалить объект
+                </Button>
+              </Popup>
+            ) : null}
             <Circle
               key={index}
               center={object.position}
-              radius={100}
+              radius={object.range}
               pathOptions={{
-                opacity: 0.5,
                 color: "blue",
-                fillOpacity: 0.5,
+                opacity: 1,
               }}
             />
           </Circle>
@@ -139,7 +192,36 @@ const ToxMap = (props) => {
               color: "blue",
               fillOpacity: 0.5,
             }}
-          ></Circle>
+          >
+            {!addObjectMode ? (
+              <Popup>
+                <Typography variant="body2" style={{ marginBottom: "8px" }}>
+                  Тип объекта:
+                </Typography>
+                <Typography variant="body2" style={{ marginTop: "0" }}>
+                  {
+                    visualProperties.objects.find((x) => x.id === object.type)
+                      .display
+                  }
+                </Typography>
+                <Typography variant="body2" style={{ marginBottom: "8px" }}>
+                  Коориданты объекта:
+                </Typography>
+                <Typography variant="body2" style={{ marginTop: "0" }}>
+                  {object.position.lng}, {object.position.lat}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => {
+                    deleteObject(object.id);
+                  }}
+                >
+                  Удалить объект
+                </Button>
+              </Popup>
+            ) : null}
+          </Circle>
         );
       });
   }, [selectedInfType, myObjects]);
@@ -408,7 +490,11 @@ const ToxMap = (props) => {
             {selectedLayer === 2 && selectedInfType.objectId !== 1
               ? selectedOkrug && !selectedAdmZone
                 ? data.sectors
-                    .filter((item) => item.okrug_okato.includes(selectedOkrug))
+                    .filter(
+                      (item) =>
+                        item.okrug_okato.includes(selectedOkrug) ||
+                        item.okrug_okato.includes(Number(selectedOkrug))
+                    )
                     .map((x, index) => (
                       <Polygon
                         key={index}

@@ -154,9 +154,11 @@ function MapPage(props) {
   };
 
   const changeData = (newData) => {
-    const newOkrugs = JSON.parse(newData.okrugs);
-    const newAdmZones = JSON.parse(newData.adm_zones);
-    const newSectors = JSON.parse(newData.sectors);
+    const newOkrugs = newData.okrugs ? JSON.parse(newData.okrugs) : [];
+    const newAdmZones = newData.adm_zones ? JSON.parse(newData.adm_zones) : [];
+    const newSectors = newData.sectors ? JSON.parse(newData.sectors) : [];
+
+    console.log(newSectors);
 
     setData((prevState) => {
       const newState = { ...prevState };
@@ -177,6 +179,7 @@ function MapPage(props) {
           x
         )
       );
+
       newSectors.map((x) =>
         newState.sectors.splice(
           newState.sectors.findIndex((item) => item.cell_zid == x.cell_zid),
@@ -184,6 +187,8 @@ function MapPage(props) {
           x
         )
       );
+
+      console.log(newState.sectors);
 
       return newState;
     });
@@ -212,6 +217,7 @@ function MapPage(props) {
             isOpen={isSidebarOpen}
             toggleSidebar={toggleSidebar}
             selectLayer={selectLayer}
+            selectedLayer={selectedLayer}
             selectedInfType={selectedInfType}
             selectInfType={selectInfType}
             visualProperties={visualProperties}

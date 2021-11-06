@@ -15,6 +15,7 @@ function Menu(props) {
     isOpen,
     toggleSidebar,
     selectLayer,
+    selectedLayer,
     selectedInfType,
     selectInfType,
     visualProperties,
@@ -30,7 +31,14 @@ function Menu(props) {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Header role={role} isOpen={isOpen} toggleSidebar={toggleSidebar} />
+      <Header
+        role={role}
+        isOpen={isOpen}
+        toggleSidebar={toggleSidebar}
+        selectedInfType={selectedInfType}
+        selectedLayer={selectedLayer}
+        visualProperties={visualProperties}
+      />
       <Drawer
         sx={{
           flexShrink: 0,
